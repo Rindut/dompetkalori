@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#173a2f" />
+    <title>DompetKalori</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand"><img src="./assets/dompetkalori-logo.png" alt="DompetKalori" width="1920" height="560" /></div>
+        <button id="profileButton" class="icon-button" type="button" aria-label="Atur profil">⚙</button>
+      </header>
+
+      <main>
+        <section class="wallet-card" aria-labelledby="walletTitle">
+          <div class="wallet-head"><div><div class="eyebrow">DOMPET KALORI · <span id="dateLabel"></span></div><h1 id="walletTitle">Sisa <span id="remainingValue">0</span> kkal</h1></div><div class="wallet-icon" aria-hidden="true"><img src="./assets/wallet.png" alt="" width="2000" height="2000" /></div></div>
+          <p id="spentLine">Terpakai 0 / 0 kkal</p>
+          <div class="meter"><div id="meterFill"></div></div>
+          <p id="overLine" class="over-line" hidden></p>
+          <span id="walletFlying" class="wallet-flying" aria-hidden="true"><img src="./assets/calorie-money.png" alt="" width="2000" height="2000" /><span id="walletFlyingAmount">−0 kkal</span></span>
+        </section>
+
+        <section class="search-section" aria-labelledby="searchTitle">
+          <div class="section-heading"><div><div class="eyebrow">CATAT MAKAN</div><h2 id="searchTitle">Mau bayar apa hari ini?</h2></div><button id="customButton" class="text-button" type="button">+ Makanan sendiri</button></div>
+          <div class="search-wrap"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Cari nasi, mie ayam, rendang..." autocomplete="off" aria-label="Cari makanan" /></div>
+          <div id="searchResults" class="results" hidden></div>
+        </section>
+
+        <section class="court-section" aria-labelledby="courtTitle">
+          <div class="section-heading court-heading"><div><div class="eyebrow">JELAJAH</div><h2 id="courtTitle">Foodcourt</h2></div><div class="court-actions"><button id="tableHotspot" class="table-hotspot" type="button">Lihat meja hari ini</button><span class="hint">Geser peta • ketuk kios</span></div></div>
+          <div id="mapViewport" class="map-viewport" tabindex="0" aria-label="Peta foodcourt yang dapat digeser">
+            <div id="mapCanvas" class="map-canvas">
+              <img src="./assets/foodcourt-clean.png" alt="Ilustrasi foodcourt isometrik dengan sepuluh kios dan meja harian di tengah" />
+              <div id="kioskHotspots"></div>
+              <div id="courier" class="courier" aria-hidden="true"><div class="waiter-shadow"></div><div class="waiter-sprite"></div></div>
+              <div id="tableDish" class="table-dish" aria-hidden="true"></div>
+            </div>
+          </div>
+          <p class="map-caption">Makanan muncul di meja setelah dicatat. Kios bisa dijelajahi, tapi pencarian tetap jalur tercepat.</p>
+        </section>
+
+        <section class="diary-section" aria-labelledby="diaryTitle">
+          <div class="section-heading"><div><div class="eyebrow">MEJA HARIAN</div><h2 id="diaryTitle">Yang sudah dibayar</h2></div><button id="copyButton" class="text-button" type="button">Salin kemarin</button></div>
+          <div class="date-nav"><button id="prevDay" type="button" aria-label="Hari sebelumnya">‹</button><span id="diaryDate"></span><button id="nextDay" type="button" aria-label="Hari berikutnya">›</button></div>
+          <div id="diaryList" class="diary-list"></div>
+        </section>
+      </main>
+      <footer>Angka makanan adalah estimasi. Data gizi per 100 g mengacu pada TKPI 2017, tabel BPS, serta FDA untuk bahan salad; porsi kios masih perlu validasi.</footer>
+    </div>
+
+    <div id="overlay" class="overlay" hidden><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"><div class="sheet-head"><h2 id="sheetTitle"></h2><button id="closeSheet" class="icon-button" type="button" aria-label="Tutup">×</button></div><div id="sheetBody"></div></div></div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

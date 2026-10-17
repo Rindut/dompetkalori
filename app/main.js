@@ -1,0 +1,241 @@
+import foodsSeed from './foods.json' with { type: 'json' };
+
+const KEY = 'bpk-local-v1';
+const $ = (id) => document.getElementById(id);
+const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const kiosks = [
+  {id:'Healthy Food',label:'Healthy Food',x:55,y:87,emoji:'🥗'},
+  {id:'Warteg',label:'Warteg',x:13,y:17,emoji:'🍱'},
+  {id:'Mie dan bakso',label:'Mie & Bakso',x:37,y:11,emoji:'🍜'},
+  {id:'Gorengan',label:'Gorengan',x:60,y:11,emoji:'🥟'},
+  {id:'Minuman',label:'Minuman',x:84,y:17,emoji:'🥤'},
+  {id:'Soto & Pecel',label:'Soto & Pecel',x:91,y:36,emoji:'🥣'},
+  {id:'Sate',label:'Sate',x:87,y:62,emoji:'🍢'},
+  {id:'Nasi Padang',label:'Nasi Padang',x:79,y:85,emoji:'🍛'},
+  {id:'Bubur',label:'Bubur',x:29,y:85,emoji:'🍚'},
+  {id:'Ikan',label:'Ikan',x:9,y:56,emoji:'🐟'},
+];
+const today = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+const shiftDate = (date,n) => { const [y,m,d]=date.split('-').map(Number); const x=new Date(y,m-1,d+n); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`; };
+const fmtDate = (date) => new Date(`${date}T12:00:00`).toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long'});
+const format = (number) => Math.round(number).toLocaleString('id-ID');
+let state;
+try { state=JSON.parse(localStorage.getItem(KEY)) || {}; } catch { state={}; }
+state.logs ||= []; state.custom ||= []; state.budgets ||= {};
+let selectedDate=today();
+let selectedFood=null;
+let selectedSize=1;
+let selectedQty=1;
+let selectedKiosk=null;
+let busy=false;
+const save = () => localStorage.setItem(KEY,JSON.stringify(state));
+const currentKiosk = kiosk => ['Soto','Pecel dan ketoprak'].includes(kiosk) ? 'Soto & Pecel' : kiosk;
+const allFoods = () => [...foodsSeed,...state.custom].map(food=>({...food,kiosk:currentKiosk(food.kiosk)}));
+const foodById = (id) => allFoods().find(f=>f.id===id);
+const grams = (food,size) => food.grams[size];
+const calories = (food,size,qty) => Math.round(food.kcal100*grams(food,size)*qty/100);
+const usedFor = (date) => state.logs.filter(l=>l.date===date).reduce((n,l)=>n+l.kcal,0);
+const budgetFor = (date) => state.budgets[date] ?? state.profile?.budget ?? 1800;
+function calculateBudget(p){
+  if(!p || p.age<18 || p.age>79 || p.pregnant==='Ya' || p.breastfeeding==='Ya' || !['Perempuan','Laki-laki'].includes(p.sex)) return null;
+  const ree=10*p.weight+6.25*p.height-5*p.age+(p.sex==='Laki-laki'?5:-161);
+  const pal={Rendah:1.4,Ringan:1.6,Aktif:1.8}[p.activity];
+  if(!pal || ree<=0) return null;
+  const maintenance=Math.round(ree*pal);
+  const budget=p.goal==='Turun bertahap'?maintenance-Math.round(Math.min(maintenance*.1,300)):maintenance;
+  return budget<1200?null:{maintenance,budget};
+}
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.classList.remove('show'),3100);}
+function openSheet(title,html){$('sheetTitle').textContent=title;$('sheetBody').innerHTML=html;$('overlay').hidden=false;$('closeSheet').focus();}
+function closeSheet(){$('overlay').hidden=true;$('sheetBody').innerHTML='';}
+function renderWallet(){
+  const budget=budgetFor(selectedDate),used=usedFor(selectedDate),remaining=budget-used;
+  $('dateLabel').textContent=fmtDate(selectedDate);
+  $('remainingValue').textContent=format(remaining);
+  $('spentLine').textContent=`Terpakai ${format(used)} / ${format(budget)} kkal`;
+  $('meterFill').style.width=`${Math.max(0,Math.min(100,used/budget*100))}%`;
+  $('overLine').hidden=remaining>=0;
+  $('overLine').textContent=remaining<0?`${fmtDate(selectedDate)}: ${format(-remaining)} kkal di atas anggaran`:'';
+}
+function emojiFor(food){return kiosks.find(k=>k.id===currentKiosk(food?.kiosk))?.emoji || '🍽️';}
+function renderDiary(){
+  $('diaryDate').textContent=fmtDate(selectedDate);
+  const logs=state.logs.filter(l=>l.date===selectedDate).sort((a,b)=>b.time.localeCompare(a.time));
+  const list=$('diaryList');
+  if(!logs.length){list.innerHTML='<div class="diary-empty">Meja masih kosong. Cari makanan lalu bayar dengan kalori.</div>';return;}
+  list.innerHTML=logs.map(l=>`<div class="diary-item"><span class="food-emoji" aria-hidden="true">${emojiFor(l)}</span><div class="diary-main"><strong>${escapeHtml(l.name)}</strong><small>${escapeHtml(l.time)} · ${escapeHtml(l.mealLabel)} · ${escapeHtml(l.portionLabel)} ${l.qty!==1?`· ${l.qty}×`:''}${l.custom?' · Estimasi pengguna':''}</small></div><div class="diary-kcal">${format(l.kcal)}</div><div class="diary-actions"><button data-edit="${escapeHtml(l.id)}" aria-label="Edit ${escapeHtml(l.name)}">Edit</button><button data-delete="${escapeHtml(l.id)}" aria-label="Hapus ${escapeHtml(l.name)}">×</button></div></div>`).join('')+`<div class="diary-total">Total ${format(usedFor(selectedDate))} kkal</div>`;
+  list.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>editLog(b.dataset.edit));
+  list.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>deleteLog(b.dataset.delete));
+}
+function renderMap(){
+  $('kioskHotspots').innerHTML=kiosks.map(k=>`<button type="button" class="kiosk-pin ${selectedKiosk===k.id?'active':''}" style="left:${k.x}%;top:${k.y}%" data-kiosk="${escapeHtml(k.id)}" aria-label="Lihat makanan kios ${escapeHtml(k.label)}">${k.emoji} ${escapeHtml(k.label)}</button>`).join('');
+  $('kioskHotspots').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    selectedKiosk=b.dataset.kiosk;
+    $('searchInput').value='';
+    renderResults();renderMap();
+    $('searchInput').scrollIntoView({behavior:'smooth',block:'center'});
+    toast(`Menampilkan makanan dari kios ${selectedKiosk}`);
+  });
+  const logs=state.logs.filter(l=>l.date===selectedDate&&!pendingDeliveries.has(l.id));
+  $('tableDish').textContent=logs.length?emojiFor(logs.at(-1))+(logs.length>1?` +${logs.length-1}`:''):'';
+}
+function renderResults(){
+  const q=$('searchInput').value.trim().toLocaleLowerCase('id-ID');
+  const box=$('searchResults');
+  if(!q && !selectedKiosk){box.hidden=true;box.innerHTML='';return;}
+  let items=allFoods().filter(f=>(!selectedKiosk || f.kiosk===selectedKiosk) && (!q || `${f.name} ${f.kiosk} ${f.aliases.join(' ')}`.toLocaleLowerCase('id-ID').includes(q)));
+  box.hidden=false;
+  if(!items.length){box.innerHTML=`<div class="empty-results">Belum ada yang cocok. Coba kata lain atau <button id="emptyCustom" class="text-button" type="button">buat makanan sendiri</button>.</div>`;$('emptyCustom').onclick=showCustom;return;}
+  box.innerHTML=items.slice(0,30).map(f=>`<button class="result" type="button" data-food="${escapeHtml(f.id)}"><span class="result-icon" aria-hidden="true">${emojiFor(f)}</span><span class="result-info"><strong>${escapeHtml(f.name)}</strong><small>${escapeHtml(f.kiosk)} · sedang ±${f.grams[1]} g</small></span><span class="result-kcal">±${format(calories(f,1,1))} kkal</span></button>`).join('');
+  box.querySelectorAll('[data-food]').forEach(b=>b.onclick=()=>showFood(foodById(b.dataset.food)));
+}
+function render(){renderWallet();renderDiary();renderMap();renderResults();}
+function foodSheetHtml(food){
+  const k= kiosks.find(x=>x.id===food.kiosk);
+  return `<div class="food-head"><span class="big-emoji" aria-hidden="true">${emojiFor(food)}</span><div><strong>${escapeHtml(food.name)}</strong><small>${escapeHtml(food.kiosk)} · ${food.kcal100} kkal / 100 g${food.custom?' · Estimasi pengguna':''}</small></div></div>
+  ${food.sourceUrl?`<p class="inline-note"><a href="${escapeHtml(food.sourceUrl)}" target="_blank" rel="noopener noreferrer">Sumber estimasi bahan</a></p>`:''}
+  <div class="form-group"><label>Porsi</label><div class="segmented" id="sizeButtons"><button type="button" data-size="0">Kecil</button><button type="button" data-size="1">Sedang</button><button type="button" data-size="2">Besar</button></div><p id="portionInfo" class="inline-note"></p></div>
+  <div class="form-group"><label>Jumlah</label><div class="segmented" id="qtyButtons"><button type="button" data-qty="0.5">½×</button><button type="button" data-qty="1">1×</button><button type="button" data-qty="2">2×</button></div></div>
+  <div class="form-row"><div class="form-group"><label for="mealLabel">Waktu makan</label><select id="mealLabel"><option>Sarapan</option><option selected>Makan siang</option><option>Makan malam</option><option>Camilan</option></select></div><div class="form-group"><label for="mealTime">Jam</label><input id="mealTime" type="time" value="${new Date().toTimeString().slice(0,5)}" /></div></div>
+  <div class="payment-summary"><span>Dari dompet kalori</span><strong id="paymentCost"></strong></div>
+  <button id="payButton" class="primary-button" type="button">Bayar dengan kalori</button>
+  ${k?`<button id="viewKiosk" class="text-button" type="button">Lihat kios ${escapeHtml(k.label)}</button>`:''}
+  <p class="inline-note">Bayar berarti mencatat makanan yang sudah dimakan. Berat porsi kios adalah estimasi awal; koreksi ½× atau 2× gratis.</p>`;
+}
+function updateFoodSheet(food){
+  document.querySelectorAll('[data-size]').forEach(b=>b.classList.toggle('active',Number(b.dataset.size)===selectedSize));
+  document.querySelectorAll('[data-qty]').forEach(b=>b.classList.toggle('active',Number(b.dataset.qty)===selectedQty));
+  $('portionInfo').textContent=`${['Kecil','Sedang','Besar'][selectedSize]} · sekitar ${grams(food,selectedSize)} g. ${food.portionStatus}.`;
+  $('paymentCost').textContent=`${format(calories(food,selectedSize,selectedQty))} kkal`;
+  $('payButton').textContent=`Bayar ${format(calories(food,selectedSize,selectedQty))} kkal`;
+}
+function showFood(food){
+  if(!food)return;
+  selectedFood=food;selectedSize=1;selectedQty=1;
+  openSheet(food.name,foodSheetHtml(food));
+  document.querySelectorAll('[data-size]').forEach(b=>b.onclick=()=>{selectedSize=Number(b.dataset.size);updateFoodSheet(food);});
+  document.querySelectorAll('[data-qty]').forEach(b=>b.onclick=()=>{selectedQty=Number(b.dataset.qty);updateFoodSheet(food);});
+  $('payButton').onclick=pay;
+  if($('viewKiosk'))$('viewKiosk').onclick=()=>{selectedKiosk=food.kiosk;renderMap();closeSheet();$('mapViewport').scrollIntoView({behavior:'smooth',block:'center'});toast('Kios asal ditandai di peta');};
+  updateFoodSheet(food);
+}
+// Feet coordinates follow the open aisles, independently of kiosk label positions.
+const deliveryRoutes = {
+  'Healthy Food': [[53,75],[51,68],[48,61]],
+  'Warteg': [[30,34],[34,47],[36,59],[48,61]],
+  'Mie dan bakso': [[37,28],[34,38],[34,48],[36,59],[48,61]],
+  'Gorengan': [[58,28],[71,35],[73,48],[66,59],[55,61]],
+  'Minuman': [[77,34],[73,48],[66,59],[55,61]],
+  'Soto & Pecel': [[84,43],[74,50],[66,59],[55,61]],
+  'Sate': [[78,57],[67,62],[55,61]],
+  'Nasi Padang': [[71,73],[64,66],[55,61]],
+  'Bubur': [[33,73],[38,66],[48,61]],
+  'Ikan': [[23,57],[35,63],[48,61]],
+};
+const pendingDeliveries = new Set();
+const deliveryQueue = [];
+let delivering = false;
+const pauseDelivery = ms => new Promise(resolve => setTimeout(resolve, ms));
+function animatePayment(log){
+  const wallet=$('walletFlying');$('walletFlyingAmount').textContent=`−${format(log.kcal)} kkal`;wallet.classList.remove('fly');void wallet.offsetWidth;wallet.classList.add('fly');
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){pendingDeliveries.delete(log.id);renderMap();return;}
+  deliveryQueue.push(log);
+  void deliverNext();
+}
+async function deliverNext(){
+  if(delivering)return;
+  delivering=true;
+  const courier=$('courier');
+  try {
+    while(deliveryQueue.length){
+      const log=deliveryQueue.shift();
+      try {
+        if(log.date!==selectedDate||!state.logs.some(item=>item.id===log.id))continue;
+        const route=deliveryRoutes[currentKiosk(log.kiosk)]||deliveryRoutes.Warteg;
+        const [startX,startY]=route[0];
+        courier.style.left=`${startX}%`;courier.style.top=`${startY}%`;
+        await pauseDelivery(450);
+        if(log.date!==selectedDate)continue;
+        const viewport=$('mapViewport'),canvas=$('mapCanvas');
+        viewport.scrollTo({left:canvas.clientWidth*.5-viewport.clientWidth/2,top:canvas.clientHeight*.49-viewport.clientHeight/2,behavior:'smooth'});
+        courier.classList.add('is-delivering','is-walking');
+        for(let i=1;i<route.length;i++){
+          if(log.date!==selectedDate||matchMedia('(prefers-reduced-motion: reduce)').matches)break;
+          const [x,y]=route[i], [px,py]=route[i-1];
+          courier.style.setProperty('--facing',x<px?-1:1);
+          const duration=Math.max(450,Math.hypot(x-px,y-py)*65);
+          const motion=courier.animate([{left:`${px}%`,top:`${py}%`},{left:`${x}%`,top:`${y}%`}],{duration,easing:'linear',fill:'forwards'});
+          await motion.finished;
+          courier.style.left=`${x}%`;courier.style.top=`${y}%`;motion.cancel();
+        }
+        courier.classList.remove('is-walking');
+        if(log.date===selectedDate){
+          courier.classList.add('is-serving');
+          await pauseDelivery(350);
+          pendingDeliveries.delete(log.id);renderMap();
+          $('tableDish').classList.remove('dish-arrived');void $('tableDish').offsetWidth;$('tableDish').classList.add('dish-arrived');
+          await pauseDelivery(400);
+        }
+      } finally {
+        pendingDeliveries.delete(log.id);
+        courier.classList.remove('is-delivering','is-walking','is-serving');
+        renderMap();
+      }
+    }
+  } finally { delivering=false; }
+}
+
+function pay(){
+  if(busy||!selectedFood)return;
+  const time=$('mealTime').value,label=$('mealLabel').value;
+  if(!time){toast('Isi jam makan dulu.');return;}
+  busy=true;
+  const food=selectedFood,id=crypto.randomUUID();
+  const log={id,foodId:food.id,name:food.name,kiosk:food.kiosk,custom:!!food.custom,date:selectedDate,time,mealLabel:label,size:selectedSize,qty:selectedQty,portionLabel:`${['Kecil','Sedang','Besar'][selectedSize]} · ${grams(food,selectedSize)} g`,kcal:calories(food,selectedSize,selectedQty)};
+  if(state.logs.some(l=>l.id===id)){busy=false;return;}
+  try{state.logs.push(log);state.budgets[selectedDate]??=state.profile?.budget??1800;save();pendingDeliveries.add(log.id);closeSheet();render();animatePayment(log);toast(`${food.name} tercatat. ${format(log.kcal)} kkal keluar dari dompet.`);}catch(e){state.logs=state.logs.filter(l=>l.id!==id);toast('Gagal menyimpan. Coba lagi.');}finally{busy=false;}
+}
+function editLog(id){
+  const log=state.logs.find(l=>l.id===id);if(!log)return;
+  openSheet('Edit catatan',`<p class="history-note">${escapeHtml(log.name)} · ${format(log.kcal)} kkal</p><div class="form-row"><div class="form-group"><label for="editQty">Jumlah porsi</label><select id="editQty"><option value="0.5">½×</option><option value="1">1×</option><option value="2">2×</option></select></div><div class="form-group"><label for="editLabel">Waktu makan</label><select id="editLabel"><option>Sarapan</option><option>Makan siang</option><option>Makan malam</option><option>Camilan</option></select></div></div><div class="form-group"><label for="editTime">Jam</label><input id="editTime" type="time" value="${escapeHtml(log.time)}" /></div><button id="saveEdit" class="primary-button" type="button">Simpan perubahan</button>`);
+  $('editQty').value=String(log.qty);$('editLabel').value=log.mealLabel;
+  $('saveEdit').onclick=()=>{const food=foodById(log.foodId);const qty=Number($('editQty').value);log.qty=qty;log.mealLabel=$('editLabel').value;log.time=$('editTime').value||log.time;log.kcal=food?calories(food,log.size,qty):Math.round(log.kcal*qty/(log.qty||1));save();closeSheet();render();toast('Catatan diperbarui.');};
+}
+function deleteLog(id){
+  const log=state.logs.find(l=>l.id===id);if(!log)return;
+  openSheet('Hapus catatan?',`<p>${escapeHtml(log.name)} (${format(log.kcal)} kkal) akan dihapus dari meja dan riwayat hari ini.</p><div class="button-row"><button id="cancelDelete" class="secondary-button" type="button">Batal</button><button id="confirmDelete" class="primary-button" type="button">Hapus catatan</button></div>`);
+  $('cancelDelete').onclick=closeSheet;$('confirmDelete').onclick=()=>{state.logs=state.logs.filter(l=>l.id!==id);save();closeSheet();render();toast('Catatan dihapus.');};
+}
+function showCopy(){
+  const yesterday=shiftDate(selectedDate,-1),source=state.logs.filter(l=>l.date===yesterday);
+  if(!source.length){toast('Belum ada menu pada hari sebelumnya.');return;}
+  openSheet('Salin menu kemarin',`<p class="history-note">Dari ${fmtDate(yesterday)} ke ${fmtDate(selectedDate)}. Dompet belum berubah sebelum konfirmasi.</p><div class="copy-list">${source.map(l=>`<label class="copy-row"><input type="checkbox" data-copy="${escapeHtml(l.id)}" checked /><span>${escapeHtml(l.name)} · ${format(l.kcal)} kkal</span></label>`).join('')}</div><div class="payment-summary" style="margin-top:13px"><span>Total pilihan</span><strong id="copyTotal"></strong></div><button id="confirmCopy" class="primary-button" type="button">Catat pilihan hari ini</button>`);
+  const update=()=>{const ids=[...document.querySelectorAll('[data-copy]:checked')].map(x=>x.dataset.copy);$('copyTotal').textContent=`${format(source.filter(l=>ids.includes(l.id)).reduce((n,l)=>n+l.kcal,0))} kkal`;};
+  document.querySelectorAll('[data-copy]').forEach(c=>c.onchange=update);update();
+  $('confirmCopy').onclick=()=>{const ids=[...document.querySelectorAll('[data-copy]:checked')].map(x=>x.dataset.copy);if(!ids.length){toast('Pilih setidaknya satu makanan.');return;}const current=new Date().toTimeString().slice(0,5);for(const l of source.filter(x=>ids.includes(x.id)))state.logs.push({...l,id:crypto.randomUUID(),date:selectedDate,time:current});state.budgets[selectedDate]??=state.profile?.budget??1800;save();closeSheet();render();toast(`${ids.length} makanan disalin ke ${fmtDate(selectedDate)}.`);};
+}
+function showCustom(){
+  openSheet('Makanan sendiri',`<p class="inline-note">Masukkan estimasi yang lo tahu. Makanan ini hanya tersimpan di browser ini.</p><div class="form-group"><label for="customName">Nama makanan</label><input id="customName" maxlength="80" placeholder="Contoh: lauk rumah" /></div><div class="form-row"><div class="form-group"><label for="customKcal">Kalori per porsi sedang</label><input id="customKcal" type="number" min="1" max="3000" step="1" placeholder="250" /></div><div class="form-group"><label for="customGram">Berat porsi sedang (g)</label><input id="customGram" type="number" min="1" max="2000" step="1" value="100" /></div></div><button id="saveCustom" class="primary-button" type="button">Simpan dan pilih makanan</button>`);
+  $('saveCustom').onclick=()=>{const name=$('customName').value.trim(),kcal=Number($('customKcal').value),gram=Number($('customGram').value);if(!name||!Number.isInteger(kcal)||kcal<1||kcal>3000||!Number.isInteger(gram)||gram<1||gram>2000){toast('Isi nama, kalori 1–3.000, dan berat 1–2.000 g.');return;}const food={id:`custom-${crypto.randomUUID()}`,name,kiosk:'Makanan sendiri',kcal100:kcal*100/gram,grams:[Math.round(gram*.75),gram,Math.round(gram*1.5)],aliases:[],portionStatus:'Estimasi pengguna',custom:true};state.custom.push(food);save();showFood(food);};
+}
+function showProfile(){
+  const p=state.profile||{age:30,sex:'Perempuan',activity:'Rendah',weight:70,height:170,pregnant:'Tidak',breastfeeding:'Tidak',goal:'Jaga berat'};
+  openSheet(state.profile?'Atur profil':'Buat dompet kalori',`<p class="inline-note">Anggaran adalah perkiraan untuk orang dewasa. Tujuan versi pertama: jaga berat atau turun bertahap.</p><div class="form-row"><div class="form-group"><label for="age">Usia</label><input id="age" type="number" min="18" max="79" value="${p.age}" /></div><div class="form-group"><label for="sex">Koefisien rumus</label><select id="sex"><option>Perempuan</option><option>Laki-laki</option><option>Tidak ingin menyebutkan</option></select></div></div><div class="form-row"><div class="form-group"><label for="weight">Berat (kg)</label><input id="weight" type="number" min="20" max="350" value="${p.weight}" /></div><div class="form-group"><label for="height">Tinggi (cm)</label><input id="height" type="number" min="100" max="250" value="${p.height}" /></div></div><div class="form-row"><div class="form-group"><label for="activity">Aktivitas</label><select id="activity"><option>Rendah</option><option>Ringan</option><option>Aktif</option></select></div><div class="form-group"><label for="goal">Tujuan</label><select id="goal"><option>Jaga berat</option><option>Turun bertahap</option></select></div></div><div class="form-row"><div class="form-group"><label for="pregnant">Hamil?</label><select id="pregnant"><option>Tidak</option><option>Ya</option></select></div><div class="form-group"><label for="breastfeeding">Menyusui?</label><select id="breastfeeding"><option>Tidak</option><option>Ya</option></select></div></div><div id="profileResult" class="profile-result"></div><button id="saveProfile" class="primary-button" type="button">Simpan profil dan anggaran</button><p class="inline-note">Rumus Mifflin–St Jeor × faktor aktivitas. Pilihan turun bertahap mengurangi 10%, maksimal 300 kkal/hari. Belum ditinjau ahli gizi untuk rekomendasi publik.</p>`);
+  for(const key of ['sex','activity','goal','pregnant','breastfeeding'])$(key).value=p[key];
+  const read=()=>({age:Number($('age').value),sex:$('sex').value,weight:Number($('weight').value),height:Number($('height').value),activity:$('activity').value,goal:$('goal').value,pregnant:$('pregnant').value,breastfeeding:$('breastfeeding').value});
+  const update=()=>{const data=read(),result=calculateBudget(data);$('profileResult').textContent=result?`Perkiraan jaga berat ${format(result.maintenance)} kkal/hari. Anggaran ${data.goal.toLowerCase()} ${format(result.budget)} kkal/hari.`:'Profil ini memerlukan anggaran yang ditentukan bersama tenaga kesehatan. Perhitungan otomatis tidak tersedia.';};
+  document.querySelectorAll('#sheetBody input,#sheetBody select').forEach(el=>el.oninput=update);update();
+  $('saveProfile').onclick=()=>{const data=read(),result=calculateBudget(data);if(!result){toast('Perhitungan otomatis tidak tersedia untuk profil ini.');return;}if(!Number.isFinite(data.age)||!Number.isFinite(data.weight)||!Number.isFinite(data.height)||data.weight<20||data.weight>350||data.height<100||data.height>250){toast('Periksa usia, berat, dan tinggi.');return;}state.profile={...data,budget:result.budget};state.budgets[today()]=result.budget;save();closeSheet();render();toast('Dompet kalori siap dipakai.');};
+}
+
+$('searchInput').addEventListener('input',()=>{selectedKiosk=null;renderResults();renderMap();});
+$('customButton').onclick=showCustom;$('profileButton').onclick=showProfile;
+$('copyButton').onclick=showCopy;
+$('prevDay').onclick=()=>{selectedDate=shiftDate(selectedDate,-1);render();};
+$('nextDay').onclick=()=>{selectedDate=shiftDate(selectedDate,1);render();};
+$('tableHotspot').onclick=()=>$('diaryList').scrollIntoView({behavior:'smooth',block:'center'});
+$('closeSheet').onclick=closeSheet;
+$('overlay').addEventListener('click',e=>{if(e.target===$('overlay'))closeSheet();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('overlay').hidden)closeSheet();});
+render();
+if(!state.profile)showProfile();

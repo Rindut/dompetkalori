@@ -1,0 +1,12 @@
+{
+  "name": "bayar-pake-kalori-local",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node app/server.mjs",
+    "start": "node app/server.mjs",
+    "check": "node --check app/main.js && node --check app/server.mjs"
+  },
+  "engines": { "node": ">=22" }
+}

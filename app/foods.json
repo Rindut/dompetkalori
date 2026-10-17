@@ -1,0 +1,543 @@
+[
+  {
+    "id": "BPS-NASGOR",
+    "name": "Nasi goreng",
+    "kiosk": "Warteg",
+    "kcal100": 276,
+    "page": null,
+    "aliases": [
+      "nasgor"
+    ],
+    "grams": [
+      150,
+      220,
+      300
+    ],
+    "portionStatus": "estimasi awal; energi per 100 g dari Daftar Komposisi Bahan Makanan BPS"
+  },
+  {
+    "id": "AP001",
+    "name": "Nasi",
+    "kiosk": "Warteg",
+    "kcal100": 180,
+    "page": 17,
+    "aliases": [
+      "nasi putih"
+    ],
+    "grams": [
+      75,
+      100,
+      150
+    ],
+    "portionStatus": "estimasi awal; sebagian mengacu URT Kemenkes"
+  },
+  {
+    "id": "DP047",
+    "name": "Sayur asem",
+    "kiosk": "Warteg",
+    "kcal100": 29,
+    "page": 42,
+    "aliases": [
+      "sayur asam"
+    ],
+    "grams": [
+      50,
+      100,
+      150
+    ],
+    "portionStatus": "estimasi awal"
+  },
+  {
+    "id": "DP053",
+    "name": "Sayur sop",
+    "kiosk": "Warteg",
+    "kcal100": 27,
+    "page": 43,
+    "aliases": [
+      "sup sayur"
+    ],
+    "grams": [
+      50,
+      100,
+      150
+    ],
+    "portionStatus": "estimasi awal"
+  },
+  {
+    "id": "CP062",
+    "name": "Tahu goreng",
+    "kiosk": "Warteg",
+    "kcal100": 115,
+    "page": 32,
+    "aliases": [
+      "tahu"
+    ],
+    "grams": [
+      50,
+      100,
+      150
+    ],
+    "portionStatus": "estimasi awal; sebagian mengacu URT Kemenkes"
+  },
+  {
+    "id": "CP076",
+    "name": "Tempe kedelai murni, goreng",
+    "kiosk": "Warteg",
+    "kcal100": 350,
+    "page": 32,
+    "aliases": [
+      "tempe goreng"
+    ],
+    "grams": [
+      50,
+      100,
+      150
+    ],
+    "portionStatus": "estimasi awal"
+  },
+  {
+    "id": "CP083",
+    "name": "Tempe pasar goreng",
+    "kiosk": "Warteg",
+    "kcal100": 336,
+    "page": 33,
+    "aliases": [
+      "tempe"
+    ],
+    "grams": [
+      25,
+      50,
+      75
+    ],
+    "portionStatus": "estimasi awal; sebagian mengacu URT Kemenkes"
+  },
+  {
+    "id": "FP024",
+    "name": "Ayam goreng kalasan, paha",
+    "kiosk": "Warteg",
+    "kcal100": 275,
+    "page": 52,
+    "aliases": [
+      "ayam goreng"
+    ],
+    "grams": [
+      60,
+      100,
+      140
+    ],
+    "portionStatus": "estimasi awal; sebagian mengacu URT Kemenkes"
+  },
+  {
+    "id": "AP084",
+    "name": "Mie aceh rebus",
+    "kiosk": "Mie dan bakso",
+    "kcal100": 113,
+    "page": 20,
+    "aliases": [
+      "mie aceh"
+    ],
+    "grams": [
+      200,
+      300,
+      400
+    ],
+    "portionStatus": "estimasi awal"
+  },
+  {
+    "id": "AP085",
+    "name": "Mie ayam",
+    "kiosk": "Mie dan bakso",
+    "kcal100": 102,
+    "page": 20,
+    "aliases": [
+      "mi ayam"
+    ],
+    "grams": [
+      200,
+      300,
+      400
+    ],
+    "portionStatus": "estimasi awal; sebagian mengacu URT Kemenkes"
+  },
+  {
+    "id": "AP086",
+    "name": "Mie bakso",
+    "kiosk": "Mie dan bakso",
+    "kcal100": 114,
+    "page": 20,
+    "aliases": [
+      "bakso mie"
+    ],
+    "grams": [
+      200,
+      300,
+      400
+    ],
+    "portionStatus": "estimasi awal; sebagian mengacu URT Kemenkes"
+  },
+  {
+    "id": "AP088",
+    "name": "Mie pangsit basah",
+    "kiosk": "Mie dan bakso",
+    "kcal100": 105,
+    "page": 20,
+    "aliases": [
+      "mie pangsit"
+    ],
+    "grams": [
+      200,
+      300,
+      400
+    ],
+    "portionStatus": "estimasi awal"
+  },
+  {
+    "id": "GP092",
+    "name": "Tekwan",
+    "kiosk": "Mie dan bakso",
+    "kcal100": 53,
+    "page": 63,
+    "aliases": [
+      "tekwan"
+    ],
+    "grams": [
+      200,
+      300,
+      400
+    ],
+    "portionStatus": "estimasi awal"
+  },
+  {
+    "id": "AP031",
+    "name": "Bakwan",
+    "kiosk": "Gorengan",
+    "kcal100": 280,
+    "page": 18,
+    "aliases": [
+      "bala-bala",
+      "ote-ote"
+    ],
+    "grams": [
+      25,
+      50,
+      75
+    ],
+    "portionStatus": "estimasi awal; sebagian mengacu URT Kemenkes"
+  },
+  {
+    "id": "AP096",
+    "name": "Pastel",
+    "kiosk": "Gorengan",
+    "kcal100": 307,
+    "page": 20,
+    "aliases": [
+      "jalangkote"
+    ],
+    "grams": [
+      25,
+      50,
+      75
+    ],
+    "portionStatus": "estimasi awal"
+  },
+  {
+    "id": "AP094",
+    "name": "Onde-onde",
+    "kiosk": "Gorengan",
+    "kcal100": 336,
+    "page": 20,
+    "aliases": [
+      "onde onde"
+    ],
+    "grams": [
+      25,
+      50,
+      75
+    ],
+    "portionStatus": "estimasi awal"
+  },
+  {
+    "id": "FP074",
+    "name": "Soto bandung",
+    "kiosk": "Soto & Pecel",
+    "kcal100": 42,
+    "page": 55,
+    "aliases": [
+      "soto daging bandung"
+    ],
+    "grams": [
+      150,
+      250,
+      350
+    ],
+    "portionStatus": "estimasi awal"
+  },
+  {
+    "id": "FP075",
+    "name": "Soto banjar",
+    "kiosk": "Soto & Pecel",
+    "kcal100": 110,
+    "page": 55,
+    "aliases": [
+      "soto ayam banjar"
+    ],
+    "grams": [
+      150,
+      250,
+      350
+    ],
+    "portionStatus": "estimasi awal"
+  },
+  {
+    "id": "FP076",
+    "name": "Soto betawi",
+    "kiosk": "Soto & Pecel",
+    "kcal100": 135,
+    "page": 55,
+    "aliases": [
+      "soto sapi betawi"
+    ],
+    "grams": [
+      150,
+      250,
+      350
+    ],
+    "portionStatus": "estimasi awal; sebagian mengacu URT Kemenkes"
+  },
+  {
+    "id": "FP078",
+    "name": "Soto kudus",
+    "kiosk": "Soto & Pecel",
+    "kcal100": 38,
+    "page": 55,
+    "aliases": [
+      "soto ayam kudus"
+    ],
+    "grams": [
+      150,
+      250,
+      350
+    ],
+    "portionStatus": "estimasi awal"
+  },
+  {
+    "id": "FP080",
+    "name": "Soto padang",
+    "kiosk": "Soto & Pecel",
+    "kcal100": 127,
+    "page": 55,
+    "aliases": [
+      "soto sapi padang"
+    ],
+    "grams": [
+      150,
+      250,
+      350
+    ],
+    "portionStatus": "estimasi awal"
+  },
+  {
+    "id": "AP092",
+    "name": "Nasi rames",
+    "kiosk": "Nasi Padang",
+    "kcal100": 155,
+    "page": 20,
+    "aliases": [
+      "nasi campur",
+      "nasi padang"
+    ],
+    "grams": [
+      200,
+      300,
+      400
+    ],
+    "portionStatus": "estimasi awal; sebagian mengacu URT Kemenkes"
+  },
+  {
+    "id": "FP062",
+    "name": "Rendang sapi",
+    "kiosk": "Nasi Padang",
+    "kcal100": 193,
+    "page": 54,
+    "aliases": [
+      "rendang"
+    ],
+    "grams": [
+      50,
+      100,
+      150
+    ],
+    "portionStatus": "estimasi awal; sebagian mengacu URT Kemenkes"
+  },
+  {
+    "id": "AP060",
+    "name": "Ketoprak",
+    "kiosk": "Soto & Pecel",
+    "kcal100": 153,
+    "page": 19,
+    "aliases": [
+      "ketoprak jakarta"
+    ],
+    "grams": [
+      200,
+      300,
+      400
+    ],
+    "portionStatus": "estimasi awal"
+  },
+  {
+    "id": "AP040",
+    "name": "Bubur tinotuan",
+    "kiosk": "Bubur",
+    "kcal100": 156,
+    "page": 18,
+    "aliases": [
+      "bubur manado",
+      "tinutuan"
+    ],
+    "grams": [
+      200,
+      300,
+      400
+    ],
+    "portionStatus": "estimasi awal"
+  },
+  {
+    "id": "GP090",
+    "name": "Sate bandeng",
+    "kiosk": "Ikan",
+    "kcal100": 283,
+    "page": 63,
+    "aliases": [
+      "sate ikan bandeng"
+    ],
+    "grams": [
+      50,
+      100,
+      150
+    ],
+    "portionStatus": "estimasi awal"
+  },
+  {
+    "id": "FP061",
+    "name": "Rawon",
+    "kiosk": "Warteg",
+    "kcal100": 60,
+    "page": 54,
+    "aliases": [
+      "rawon sapi"
+    ],
+    "grams": [
+      150,
+      250,
+      350
+    ],
+    "portionStatus": "estimasi awal"
+  },
+  {
+    "id": "AP089",
+    "name": "Nasi gemuk",
+    "kiosk": "Warteg",
+    "kcal100": 192,
+    "page": 20,
+    "aliases": [
+      "nasi uduk gaya jambi"
+    ],
+    "grams": [
+      75,
+      100,
+      150
+    ],
+    "portionStatus": "estimasi awal"
+  },
+  {
+    "id": "AP090",
+    "name": "Nasi gurih",
+    "kiosk": "Warteg",
+    "kcal100": 190,
+    "page": 20,
+    "aliases": [
+      "nasi gurih medan"
+    ],
+    "grams": [
+      75,
+      100,
+      150
+    ],
+    "portionStatus": "estimasi awal"
+  },
+  {
+    "id": "HF-SALAD-SAYUR",
+    "name": "Salad sayur tanpa dressing",
+    "kiosk": "Healthy Food",
+    "kcal100": 15,
+    "page": null,
+    "aliases": [
+      "salad",
+      "selada",
+      "timun",
+      "tomat"
+    ],
+    "grams": [
+      100,
+      150,
+      250
+    ],
+    "portionStatus": "estimasi resep: selada, timun, dan tomat dengan berat sama; tanpa minyak atau dressing. Porsi sedang = 50 g tiap bahan. Nilai dibulatkan dari tabel FDA.",
+    "sourceUrl": "https://www.fda.gov/food/nutrition-food-labeling-and-critical-foods/nutrition-information-raw-vegetables",
+    "recipeBasis": "Per 100 g bahan: selada 15/85*100 kkal, timun 10/99*100, tomat 25/148*100; campuran berat sama = 14.88 kkal/100 g."
+  },
+  {
+    "id": "HF-SALAD-BUAH",
+    "name": "Salad buah tanpa saus",
+    "kiosk": "Healthy Food",
+    "kcal100": 37,
+    "page": null,
+    "aliases": [
+      "buah potong",
+      "semangka",
+      "nanas",
+      "salad"
+    ],
+    "grams": [
+      100,
+      200,
+      300
+    ],
+    "portionStatus": "estimasi resep: semangka dan nanas dengan berat sama; tanpa mayones, keju, sirup, atau susu kental manis. Porsi sedang = 100 g tiap buah. Nilai dibulatkan dari tabel FDA.",
+    "sourceUrl": "https://www.fda.gov/food/food-labeling-nutrition/raw-fruits-poster-text-version-accessible-version",
+    "recipeBasis": "Semangka 80 kkal/280 g dan nanas 50 kkal/112 g; campuran berat sama = 36.61 kkal/100 g."
+  },
+  {
+    "id": "HF-DP053",
+    "name": "Sayur sop",
+    "kiosk": "Healthy Food",
+    "kcal100": 27,
+    "page": 43,
+    "aliases": [
+      "sup sayur"
+    ],
+    "grams": [
+      50,
+      100,
+      150
+    ],
+    "portionStatus": "estimasi awal"
+  },
+  {
+    "id": "HF-DP047",
+    "name": "Sayur asem",
+    "kiosk": "Healthy Food",
+    "kcal100": 29,
+    "page": 42,
+    "aliases": [
+      "sayur asam"
+    ],
+    "grams": [
+      50,
+      100,
+      150
+    ],
+    "portionStatus": "estimasi awal"
+  }
+]
