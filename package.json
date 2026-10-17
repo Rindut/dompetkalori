@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "node app/server.mjs",
     "start": "node app/server.mjs",
-    "check": "node --check app/main.js && node --check app/server.mjs"
+    "check": "node --check app/main.js && node --check app/server.mjs",
+    "build": "node scripts/build.mjs"
   },
-  "engines": { "node": ">=22" }
+  "engines": {
+    "node": ">=22"
+  }
 }

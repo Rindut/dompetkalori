@@ -31,3 +31,7 @@ npm run check
 Dokumen produk, teknis, desain, dan UAT ada di folder `docs/`. Spreadsheet di folder utama mencatat perencanaan awal dan belum tentu mencerminkan seluruh perubahan implementasi terbaru.
 
 Rumus anggaran kerja ada di `BPK Metode Anggaran.xlsx`. Hanya untuk dewasa yang memenuhi syarat perhitungan. Sebelum dipakai sebagai rekomendasi publik, metode dan angka porsi perlu ditinjau ahli gizi.
+
+## Deploy ke Vercel
+
+Gunakan root repository sebagai Root Directory. `vercel.json` menjalankan `npm run build` dan menyajikan folder `dist/`. Build hanya menyalin aplikasi dan aset publik; server lokal serta dokumen perencanaan tidak ikut disajikan. Data pengguna tetap tersimpan di localStorage tiap browser dan domain.
