@@ -74,7 +74,7 @@ function renderDiary(){
   list.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>deleteLog(b.dataset.delete));
 }
 function renderMap(){
-  $('kioskHotspots').innerHTML=kiosks.map(k=>`<button type="button" class="kiosk-pin ${selectedKiosk===k.id?'active':''}" style="left:${k.x}%;top:${k.y}%" data-kiosk="${escapeHtml(k.id)}" aria-label="Lihat makanan kios ${escapeHtml(k.label)}">${k.emoji} ${escapeHtml(k.label)}</button>`).join('');
+  $('kioskHotspots').innerHTML=kiosks.map(k=>`<button type="button" class="kiosk-pin ${selectedKiosk===k.id?'active':''}" style="left:${k.x}%;top:max(${k.y}%,calc(var(--court-top) + 12px))" data-kiosk="${escapeHtml(k.id)}" aria-label="Lihat makanan kios ${escapeHtml(k.label)}">${k.emoji} ${escapeHtml(k.label)}</button>`).join('');
   $('kioskHotspots').querySelectorAll('button').forEach(b=>b.onclick=()=>{
     selectedKiosk=b.dataset.kiosk;
     $('searchInput').value='';
@@ -345,7 +345,7 @@ $('nextDay').onclick=()=>{selectedDate=shiftDate(selectedDate,1);render();};
 $('tableHotspot').onclick=()=>{$('searchInput').blur();$('searchResults').hidden=true;renderDiary();$('diaryOverlay').hidden=false;$('closeDiary').focus();};
 $('closeDiary').onclick=()=>{$('diaryOverlay').hidden=true;$('tableHotspot').focus();};
 $('diaryOverlay').onclick=e=>{if(e.target===$('diaryOverlay'))$('diaryOverlay').hidden=true;};
- $('walletDetailsButton').onclick=()=>{const budget=budgetFor(selectedDate),used=usedFor(selectedDate),remaining=budget-used;openSheet('Dompet hari ini',`<div class="wallet-detail-logo"><img src="./assets/dompetkalori-logo-transparent.png" alt="DompetKalori" /></div><div class="wallet-detail-date">${fmtDate(selectedDate)}</div><div class="wallet-detail-rows"><div><span>Anggaran</span><strong>${format(budget)} ${coinUnit}</strong></div><div><span>Terpakai</span><strong>${format(used)} ${coinUnit}</strong></div><div><span>Sisa</span><strong class="wallet-detail-remaining">${format(remaining)} ${coinUnit}</strong></div></div><p class="inline-note">${used>budget?'Di atas anggaran. Kamu tetap bisa mencatat makanan.':'Atur Anggaran di menu Settings'}</p>`);document.querySelector('#overlay .sheet').classList.add('wallet-sheet');};
+ $('walletDetailsButton').onclick=()=>{const budget=budgetFor(selectedDate),used=usedFor(selectedDate),remaining=budget-used;openSheet('Dompet hari ini',`<div class="wallet-detail-logo"><img src="./assets/dompetkalori-logo-transparent.png" alt="DompetKalori" /></div><div class="wallet-detail-date">${selectedDate===today()?'Hari ini, ':''}${new Date(`${selectedDate}T12:00:00`).toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).replace(',','')}</div><div class="wallet-detail-rows"><div><span>Saldo kalori hari ini</span><strong>${format(budget)} ${coinUnit}</strong></div><div><span>Kalori terpakai</span><strong>${format(used)} ${coinUnit}</strong></div><div><span>Sisa saldo kalori</span><strong class="wallet-detail-remaining">${format(remaining)} ${coinUnit}</strong></div></div><p class="inline-note">${used>budget?'Di atas anggaran. Kamu tetap bisa mencatat makanan.':'Atur Anggaran di menu Settings'}</p>`);document.querySelector('#overlay .sheet').classList.add('wallet-sheet');};
 $('mapPanLeft').onclick=()=>$('mapViewport').scrollBy({left:-Math.max(180,$('mapViewport').clientWidth*.72),behavior:'smooth'});
 $('mapPanRight').onclick=()=>$('mapViewport').scrollBy({left:Math.max(180,$('mapViewport').clientWidth*.72),behavior:'smooth'});
 $('closeSheet').onclick=closeSheet;
