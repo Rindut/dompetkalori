@@ -46,11 +46,16 @@ function calculateBudget(p){
   return budget<1200?null:{maintenance,budget};
 }
 function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.classList.remove('show'),3100);}
-function openSheet(title,html){$('sheetTitle').textContent=title;$('sheetBody').innerHTML=html;$('overlay').hidden=false;$('closeSheet').focus();}
-function closeSheet(){$('overlay').hidden=true;$('sheetBody').innerHTML='';}
+let sheetCloseTimer;
+function closeFoodInline(){$('foodInline').hidden=true;$('foodInline').innerHTML='';$('foodInline').style.height='';}
+function openSheet(title,html){clearTimeout(sheetCloseTimer);closeFoodInline();$('diaryOverlay').hidden=true;$('searchResults').hidden=true;$('searchInput').blur();const sheet=document.querySelector('#overlay .sheet');sheet.classList.remove('food-sheet','wallet-sheet','drawer-open');sheet.classList.toggle('food-sheet',html.includes('id="payButton"'));$('sheetTitle').textContent=title;$('sheetBody').innerHTML=html;$('overlay').hidden=false;requestAnimationFrame(()=>requestAnimationFrame(()=>sheet.classList.add('drawer-open')));$('closeSheet').focus();}
+function closeSheet(){const overlay=$('overlay'),sheet=overlay.querySelector('.sheet');sheet.classList.remove('drawer-open');clearTimeout(sheetCloseTimer);sheetCloseTimer=setTimeout(()=>{overlay.hidden=true;$('sheetBody').innerHTML='';},800);}
 function renderWallet(){
   const budget=budgetFor(selectedDate),used=usedFor(selectedDate),remaining=budget-used;
-  $('dateLabel').textContent=fmtDate(selectedDate);
+  const date=new Date(`${selectedDate}T12:00:00`);
+  $('dateLabel').textContent=`${date.toLocaleDateString('id-ID',{weekday:'long'})} ${date.getDate()} ${date.toLocaleDateString('en-GB',{month:'short'})}`;
+  $('tableLabel').textContent=selectedDate===today()?'Meja hari ini':'Meja';
+  $('tableDate').textContent=$('dateLabel').textContent;
   $('remainingValue').textContent=format(remaining);
   $('spentLine').textContent=`Terpakai ${format(used)} / ${format(budget)} kkal`;
   $('meterFill').style.width=`${Math.max(0,Math.min(100,used/budget*100))}%`;
@@ -73,7 +78,7 @@ function renderMap(){
     selectedKiosk=b.dataset.kiosk;
     $('searchInput').value='';
     renderResults();renderMap();
-    $('searchInput').scrollIntoView({behavior:'smooth',block:'center'});
+
     toast(`Menampilkan makanan dari kios ${selectedKiosk}`);
   });
   const logs=state.logs.filter(l=>l.date===selectedDate&&!pendingDeliveries.has(l.id));
@@ -112,11 +117,15 @@ function updateFoodSheet(food){
 function showFood(food){
   if(!food)return;
   selectedFood=food;selectedSize=1;selectedQty=1;
-  openSheet(food.name,foodSheetHtml(food));
+  const inline=$('foodInline');
+  inline.style.height=`${Math.max(260,Math.min(430,$('searchResults').offsetHeight||300))}px`;
+  inline.innerHTML=`<button id="closeFoodInline" class="food-inline-close" type="button" aria-label="Tutup detail makanan">×</button>${foodSheetHtml(food)}`;
+  $('searchResults').hidden=true;inline.hidden=false;
+  $('closeFoodInline').onclick=()=>{closeFoodInline();$('searchInput').focus();renderResults();};
   document.querySelectorAll('[data-size]').forEach(b=>b.onclick=()=>{selectedSize=Number(b.dataset.size);updateFoodSheet(food);});
   document.querySelectorAll('[data-qty]').forEach(b=>b.onclick=()=>{selectedQty=Number(b.dataset.qty);updateFoodSheet(food);});
   $('payButton').onclick=pay;
-  if($('viewKiosk'))$('viewKiosk').onclick=()=>{selectedKiosk=food.kiosk;renderMap();closeSheet();$('mapViewport').scrollIntoView({behavior:'smooth',block:'center'});toast('Kios asal ditandai di peta');};
+  if($('viewKiosk'))$('viewKiosk').onclick=()=>{selectedKiosk=food.kiosk;closeFoodInline();renderMap();$('mapViewport').scrollIntoView({behavior:'smooth',block:'center'});toast('Kios asal ditandai di peta');};
   updateFoodSheet(food);
 }
 // Feet coordinates follow the open aisles, independently of kiosk label positions.
@@ -137,10 +146,48 @@ const deliveryQueue = [];
 let delivering = false;
 const pauseDelivery = ms => new Promise(resolve => setTimeout(resolve, ms));
 function animatePayment(log){
-  const wallet=$('walletFlying');$('walletFlyingAmount').textContent=`−${format(log.kcal)} kkal`;wallet.classList.remove('fly');void wallet.offsetWidth;wallet.classList.add('fly');
   if(matchMedia('(prefers-reduced-motion: reduce)').matches){pendingDeliveries.delete(log.id);renderMap();return;}
   deliveryQueue.push(log);
   void deliverNext();
+}
+// Payment and delivery share one queue: the waiter only starts after receipt.
+async function sendMoneyToKiosk(log){
+  const kioskId=currentKiosk(log.kiosk);
+  const kiosk=kiosks.find(k=>k.id===kioskId)||kiosks.find(k=>k.id==='Warteg');
+  const viewport=$('mapViewport'),canvas=$('mapCanvas'),money=$('walletFlying');
+  viewport.scrollTo({left:canvas.clientWidth*kiosk.x/100-viewport.clientWidth/2,top:canvas.clientHeight*kiosk.y/100-viewport.clientHeight*.38,behavior:'instant'});
+  $('walletFlyingAmount').textContent=`−${format(log.kcal)} kkal`;
+  money.classList.add('paying');
+  // Launch money from the wallet illustration in the visible balance artwork.
+  const logo=document.querySelector('.kcal-wordmark img');
+  const origin=(logo || document.querySelector('.wallet-card')).getBoundingClientRect();
+  const start={x:origin.left+(logo ? origin.width*.26 : origin.width/2),y:origin.top+origin.height/2};
+  const valid=()=>log.date===selectedDate&&state.logs.some(item=>item.id===log.id)&&!matchMedia('(prefers-reduced-motion: reduce)').matches;
+  try{
+    const received=await new Promise(resolve=>{
+      let began;
+      function step(time){
+        if(!valid()){resolve(false);return;}
+        began??=time;
+        const t=Math.min(1,(time-began)/1400),ease=t*t*(3-2*t);
+        const pin=[...$('kioskHotspots').querySelectorAll('button')].find(b=>b.dataset.kiosk===kiosk.id);
+        if(!pin){resolve(false);return;}
+        const target=pin.getBoundingClientRect(),shell=document.querySelector('.app-shell').getBoundingClientRect();
+        const end={x:target.left+target.width/2,y:target.bottom+16};
+        const x=start.x+(end.x-start.x)*ease-shell.left;
+        const y=Math.max(40,start.y+(end.y-start.y)*ease-Math.sin(t*Math.PI)*35-shell.top);
+        const scale=t<.2?.45+t*2.75:1-Math.max(0,(t-.7)/.3)*.8;
+        money.style.transform=`translate(${x-32}px,${y-32}px) rotate(${Math.sin(t*Math.PI)*-15}deg) scale(${scale})`;
+        money.style.opacity=String(t<.12?t/.12:t>.88?(1-t)/.12:1);
+        if(t<1)requestAnimationFrame(step);else resolve(true);
+      }
+      requestAnimationFrame(step);
+    });
+    if(!received)return false;
+    const pin=[...$('kioskHotspots').querySelectorAll('button')].find(b=>b.dataset.kiosk===kiosk.id);
+    if(pin){const receipt=pin.animate([{boxShadow:'0 0 0 0 #b9e3a9'},{boxShadow:'0 0 0 12px #b9e3a900'},{boxShadow:'0 0 0 0 #b9e3a900'}],{duration:350});await receipt.finished;}
+    return valid();
+  }finally{money.classList.remove('paying');money.style.opacity='0';money.style.transform='';}
 }
 async function deliverNext(){
   if(delivering)return;
@@ -154,8 +201,7 @@ async function deliverNext(){
         const route=deliveryRoutes[currentKiosk(log.kiosk)]||deliveryRoutes.Warteg;
         const [startX,startY]=route[0];
         courier.style.left=`${startX}%`;courier.style.top=`${startY}%`;
-        await pauseDelivery(450);
-        if(log.date!==selectedDate)continue;
+        if(!await sendMoneyToKiosk(log))continue;
         const viewport=$('mapViewport'),canvas=$('mapCanvas');
         viewport.scrollTo({left:canvas.clientWidth*.5-viewport.clientWidth/2,top:canvas.clientHeight*.49-viewport.clientHeight/2,behavior:'smooth'});
         courier.classList.add('is-delivering','is-walking');
@@ -176,7 +222,10 @@ async function deliverNext(){
           $('tableDish').classList.remove('dish-arrived');void $('tableDish').offsetWidth;$('tableDish').classList.add('dish-arrived');
           await pauseDelivery(400);
         }
+      } catch(error){
+        console.warn('Animasi pengantaran tidak selesai; catatan tetap tersimpan.',error);
       } finally {
+        $('walletFlying').classList.remove('paying');
         pendingDeliveries.delete(log.id);
         courier.classList.remove('is-delivering','is-walking','is-serving');
         renderMap();
@@ -193,7 +242,7 @@ function pay(){
   const food=selectedFood,id=crypto.randomUUID();
   const log={id,foodId:food.id,name:food.name,kiosk:food.kiosk,custom:!!food.custom,date:selectedDate,time,mealLabel:label,size:selectedSize,qty:selectedQty,portionLabel:`${['Kecil','Sedang','Besar'][selectedSize]} · ${grams(food,selectedSize)} g`,kcal:calories(food,selectedSize,selectedQty)};
   if(state.logs.some(l=>l.id===id)){busy=false;return;}
-  try{state.logs.push(log);state.budgets[selectedDate]??=state.profile?.budget??1800;save();pendingDeliveries.add(log.id);closeSheet();render();animatePayment(log);toast(`${food.name} tercatat. ${format(log.kcal)} kkal keluar dari dompet.`);}catch(e){state.logs=state.logs.filter(l=>l.id!==id);toast('Gagal menyimpan. Coba lagi.');}finally{busy=false;}
+  try{state.logs.push(log);state.budgets[selectedDate]??=state.profile?.budget??1800;save();pendingDeliveries.add(log.id);closeFoodInline();$('searchInput').value='';selectedKiosk=null;render();animatePayment(log);toast(`${food.name} tercatat. ${format(log.kcal)} kkal keluar dari dompet.`);}catch(e){state.logs=state.logs.filter(l=>l.id!==id);toast('Gagal menyimpan. Coba lagi.');}finally{busy=false;}
 }
 function editLog(id){
   const log=state.logs.find(l=>l.id===id);if(!log)return;
@@ -228,14 +277,28 @@ function showProfile(){
   $('saveProfile').onclick=()=>{const data=read(),result=calculateBudget(data);if(!result){toast('Perhitungan otomatis tidak tersedia untuk profil ini.');return;}if(!Number.isFinite(data.age)||!Number.isFinite(data.weight)||!Number.isFinite(data.height)||data.weight<20||data.weight>350||data.height<100||data.height>250){toast('Periksa usia, berat, dan tinggi.');return;}state.profile={...data,budget:result.budget};state.budgets[today()]=result.budget;save();closeSheet();render();toast('Dompet kalori siap dipakai.');};
 }
 
-$('searchInput').addEventListener('input',()=>{selectedKiosk=null;renderResults();renderMap();});
+$('searchInput').addEventListener('input',()=>{closeFoodInline();selectedKiosk=null;renderResults();renderMap();});
+$('searchInput').addEventListener('focus',renderResults);
+document.addEventListener('pointerdown',event=>{
+  if(!event.target.closest('.search-section')){$('searchResults').hidden=true;closeFoodInline();}
+});
 $('customButton').onclick=showCustom;$('profileButton').onclick=showProfile;
 $('copyButton').onclick=showCopy;
 $('prevDay').onclick=()=>{selectedDate=shiftDate(selectedDate,-1);render();};
 $('nextDay').onclick=()=>{selectedDate=shiftDate(selectedDate,1);render();};
-$('tableHotspot').onclick=()=>$('diaryList').scrollIntoView({behavior:'smooth',block:'center'});
+$('tableHotspot').onclick=()=>{$('searchInput').blur();$('searchResults').hidden=true;renderDiary();$('diaryOverlay').hidden=false;$('closeDiary').focus();};
+$('closeDiary').onclick=()=>{$('diaryOverlay').hidden=true;$('tableHotspot').focus();};
+$('diaryOverlay').onclick=e=>{if(e.target===$('diaryOverlay'))$('diaryOverlay').hidden=true;};
+ $('walletDetailsButton').onclick=()=>{const budget=budgetFor(selectedDate),used=usedFor(selectedDate),remaining=budget-used;openSheet('Dompet hari ini',`<div class="wallet-detail-logo"><img src="./assets/dompetkalori-logo-transparent.png" alt="DompetKalori" /></div><div class="wallet-detail-date">${fmtDate(selectedDate)}</div><div class="wallet-detail-rows"><div><span>Anggaran</span><strong>${format(budget)} kkal</strong></div><div><span>Terpakai</span><strong>${format(used)} kkal</strong></div><div><span>Sisa</span><strong class="wallet-detail-remaining">${format(remaining)} kkal</strong></div></div><p class="inline-note">${used>budget?'Di atas anggaran. Kamu tetap bisa mencatat makanan.':'Atur Anggaran di menu Settings'}</p>`);document.querySelector('#overlay .sheet').classList.add('wallet-sheet');};
+$('mapPanLeft').onclick=()=>$('mapViewport').scrollBy({left:-Math.max(180,$('mapViewport').clientWidth*.72),behavior:'smooth'});
+$('mapPanRight').onclick=()=>$('mapViewport').scrollBy({left:Math.max(180,$('mapViewport').clientWidth*.72),behavior:'smooth'});
 $('closeSheet').onclick=closeSheet;
 $('overlay').addEventListener('click',e=>{if(e.target===$('overlay'))closeSheet();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('overlay').hidden)closeSheet();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('diaryOverlay').hidden=true;if(!$('overlay').hidden)closeSheet();$('searchResults').hidden=true;}});
 render();
 if(!state.profile)showProfile();
+
+// Follow the visible viewport when mobile browser chrome or keyboard changes height.
+function syncViewport(){const viewport=window.visualViewport;document.documentElement.style.setProperty('--app-height',`${viewport?.height||innerHeight}px`);document.documentElement.style.setProperty('--app-top',`${viewport?.offsetTop||0}px`);}
+syncViewport();window.visualViewport?.addEventListener('resize',syncViewport);window.visualViewport?.addEventListener('scroll',syncViewport);window.addEventListener('resize',syncViewport);
+requestAnimationFrame(()=>{const viewport=$('mapViewport');viewport.scrollLeft=(viewport.scrollWidth-viewport.clientWidth)/2;});
