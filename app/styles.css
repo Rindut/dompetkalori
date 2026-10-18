@@ -155,3 +155,8 @@ html,body{height:100%;overflow:hidden;background:#e7ede7}
 .food-inline{max-height:max(120px,calc(var(--app-height,100dvh) - 210px))}
 .map-pan{z-index:5}
 .wallet-detail-logo{max-width:calc(100% - 70px);height:auto;aspect-ratio:265/69}
+.coin-icon{display:inline-block;width:1em;height:1em;background:url('./assets/calorie-coin.png') no-repeat -.5em 0 / auto 100%;vertical-align:middle}
+.wallet-flying .coin-icon{display:block;font-size:64px;filter:drop-shadow(0 4px 7px #072e2540)}
+
+.coin-stream{position:absolute;inset:0;z-index:9;pointer-events:none;overflow:hidden}
+.coin-stream .coin-icon{position:absolute;left:0;top:0;font-size:36px;opacity:0;will-change:transform,opacity;filter:drop-shadow(0 3px 3px #072e2540)}

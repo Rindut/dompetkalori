@@ -102,7 +102,7 @@ function foodSheetHtml(food){
   <div class="form-group"><label>Porsi</label><div class="segmented" id="sizeButtons"><button type="button" data-size="0">Kecil</button><button type="button" data-size="1">Sedang</button><button type="button" data-size="2">Besar</button></div><p id="portionInfo" class="inline-note"></p></div>
   <div class="form-group"><label>Jumlah</label><div class="segmented" id="qtyButtons"><button type="button" data-qty="0.5">½×</button><button type="button" data-qty="1">1×</button><button type="button" data-qty="2">2×</button></div></div>
   <div class="form-row"><div class="form-group"><label for="mealLabel">Waktu makan</label><select id="mealLabel"><option>Sarapan</option><option selected>Makan siang</option><option>Makan malam</option><option>Camilan</option></select></div><div class="form-group"><label for="mealTime">Jam</label><input id="mealTime" type="time" value="${new Date().toTimeString().slice(0,5)}" /></div></div>
-  <div class="payment-summary"><span>Dari dompet kalori</span><strong id="paymentCost"></strong></div>
+  <div class="payment-summary"><span>1 koin = 1 kkal</span><strong id="paymentCost"></strong></div>
   <button id="payButton" class="primary-button" type="button">Bayar dengan kalori</button>
   ${k?`<button id="viewKiosk" class="text-button" type="button">Lihat kios ${escapeHtml(k.label)}</button>`:''}
   <p class="inline-note">Bayar berarti mencatat makanan yang sudah dimakan. Berat porsi kios adalah estimasi awal; koreksi ½× atau 2× gratis.</p>`;
@@ -111,8 +111,8 @@ function updateFoodSheet(food){
   document.querySelectorAll('[data-size]').forEach(b=>b.classList.toggle('active',Number(b.dataset.size)===selectedSize));
   document.querySelectorAll('[data-qty]').forEach(b=>b.classList.toggle('active',Number(b.dataset.qty)===selectedQty));
   $('portionInfo').textContent=`${['Kecil','Sedang','Besar'][selectedSize]} · sekitar ${grams(food,selectedSize)} g. ${food.portionStatus}.`;
-  $('paymentCost').textContent=`${format(calories(food,selectedSize,selectedQty))} kkal`;
-  $('payButton').textContent=`Bayar ${format(calories(food,selectedSize,selectedQty))} kkal`;
+  $('paymentCost').textContent=`${format(calories(food,selectedSize,selectedQty))} koin`;
+  $('payButton').textContent=`Bayar ${format(calories(food,selectedSize,selectedQty))} koin`;
 }
 function showFood(food){
   if(!food)return;
@@ -154,14 +154,18 @@ function animatePayment(log){
 async function sendMoneyToKiosk(log){
   const kioskId=currentKiosk(log.kiosk);
   const kiosk=kiosks.find(k=>k.id===kioskId)||kiosks.find(k=>k.id==='Warteg');
-  const viewport=$('mapViewport'),canvas=$('mapCanvas'),money=$('walletFlying');
+  const viewport=$('mapViewport'),canvas=$('mapCanvas');
   viewport.scrollTo({left:canvas.clientWidth*kiosk.x/100-viewport.clientWidth/2,top:canvas.clientHeight*kiosk.y/100-viewport.clientHeight*.38,behavior:'instant'});
-  $('walletFlyingAmount').textContent=`−${format(log.kcal)} kkal`;
-  money.classList.add('paying');
-  // Launch money from the wallet illustration in the visible balance artwork.
-  const logo=document.querySelector('.kcal-wordmark img');
-  const origin=(logo || document.querySelector('.wallet-card')).getBoundingClientRect();
-  const start={x:origin.left+(logo ? origin.width*.26 : origin.width/2),y:origin.top+origin.height/2};
+  const shell=document.querySelector('.app-shell');
+  const origin=$('remainingValue').getBoundingClientRect();
+  const start={x:origin.left+origin.width/2,y:origin.top+origin.height/2};
+  const layer=document.createElement('div');
+  layer.className='coin-stream';layer.setAttribute('aria-hidden','true');
+  const coins=Array.from({length:6},()=>{
+    const coin=document.createElement('i');coin.className='coin-icon';
+    layer.append(coin);return coin;
+  });
+  shell.append(layer);
   const valid=()=>log.date===selectedDate&&state.logs.some(item=>item.id===log.id)&&!matchMedia('(prefers-reduced-motion: reduce)').matches;
   try{
     const received=await new Promise(resolve=>{
@@ -169,17 +173,22 @@ async function sendMoneyToKiosk(log){
       function step(time){
         if(!valid()){resolve(false);return;}
         began??=time;
-        const t=Math.min(1,(time-began)/1400),ease=t*t*(3-2*t);
+        const elapsed=time-began;
         const pin=[...$('kioskHotspots').querySelectorAll('button')].find(b=>b.dataset.kiosk===kiosk.id);
         if(!pin){resolve(false);return;}
-        const target=pin.getBoundingClientRect(),shell=document.querySelector('.app-shell').getBoundingClientRect();
-        const end={x:target.left+target.width/2,y:target.bottom+16};
-        const x=start.x+(end.x-start.x)*ease-shell.left;
-        const y=Math.max(40,start.y+(end.y-start.y)*ease-Math.sin(t*Math.PI)*35-shell.top);
-        const scale=t<.2?.45+t*2.75:1-Math.max(0,(t-.7)/.3)*.8;
-        money.style.transform=`translate(${x-32}px,${y-32}px) rotate(${Math.sin(t*Math.PI)*-15}deg) scale(${scale})`;
-        money.style.opacity=String(t<.12?t/.12:t>.88?(1-t)/.12:1);
-        if(t<1)requestAnimationFrame(step);else resolve(true);
+        const target=pin.getBoundingClientRect(),bounds=shell.getBoundingClientRect();
+        const end={x:target.left+target.width/2,y:target.bottom+24};
+        coins.forEach((coin,index)=>{
+          const t=Math.max(0,Math.min(1,(elapsed-index*170)/1150));
+          const ease=t*t*(3-2*t),arc=Math.sin(t*Math.PI);
+          const x=start.x+(end.x-start.x)*ease+arc*(index%2?18:-18)-bounds.left;
+          const y=start.y+(end.y-start.y)*t*t+arc*(14+index*4)-bounds.top;
+          const absorb=Math.max(0,(t-.72)/.28);
+          const scale=(.65+.35*Math.min(1,t/.15))*(1-absorb);
+          coin.style.transform=`translate(${x-18}px,${y-18}px) rotate(${t*(index%2?240:-240)}deg) scale(${scale})`;
+          coin.style.opacity=String(Math.min(1,t/.08)*(1-absorb));
+        });
+        if(elapsed<1150+(coins.length-1)*170)requestAnimationFrame(step);else resolve(true);
       }
       requestAnimationFrame(step);
     });
@@ -187,8 +196,9 @@ async function sendMoneyToKiosk(log){
     const pin=[...$('kioskHotspots').querySelectorAll('button')].find(b=>b.dataset.kiosk===kiosk.id);
     if(pin){const receipt=pin.animate([{boxShadow:'0 0 0 0 #b9e3a9'},{boxShadow:'0 0 0 12px #b9e3a900'},{boxShadow:'0 0 0 0 #b9e3a900'}],{duration:350});await receipt.finished;}
     return valid();
-  }finally{money.classList.remove('paying');money.style.opacity='0';money.style.transform='';}
+  }finally{layer.remove();}
 }
+
 async function deliverNext(){
   if(delivering)return;
   delivering=true;
@@ -242,7 +252,7 @@ function pay(){
   const food=selectedFood,id=crypto.randomUUID();
   const log={id,foodId:food.id,name:food.name,kiosk:food.kiosk,custom:!!food.custom,date:selectedDate,time,mealLabel:label,size:selectedSize,qty:selectedQty,portionLabel:`${['Kecil','Sedang','Besar'][selectedSize]} · ${grams(food,selectedSize)} g`,kcal:calories(food,selectedSize,selectedQty)};
   if(state.logs.some(l=>l.id===id)){busy=false;return;}
-  try{state.logs.push(log);state.budgets[selectedDate]??=state.profile?.budget??1800;save();pendingDeliveries.add(log.id);closeFoodInline();$('searchInput').value='';selectedKiosk=null;render();animatePayment(log);toast(`${food.name} tercatat. ${format(log.kcal)} kkal keluar dari dompet.`);}catch(e){state.logs=state.logs.filter(l=>l.id!==id);toast('Gagal menyimpan. Coba lagi.');}finally{busy=false;}
+  try{state.logs.push(log);state.budgets[selectedDate]??=state.profile?.budget??1800;save();pendingDeliveries.add(log.id);closeFoodInline();$('searchInput').value='';selectedKiosk=null;render();animatePayment(log);toast(`${food.name} tercatat. ${format(log.kcal)} koin keluar dari dompet.`);}catch(e){state.logs=state.logs.filter(l=>l.id!==id);toast('Gagal menyimpan. Coba lagi.');}finally{busy=false;}
 }
 function editLog(id){
   const log=state.logs.find(l=>l.id===id);if(!log)return;
