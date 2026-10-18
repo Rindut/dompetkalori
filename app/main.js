@@ -1,6 +1,7 @@
 import foodsSeed from './foods.json' with { type: 'json' };
 
 const KEY = 'bpk-local-v1';
+const coinUnit = '<i class="coin-icon coin-unit" role="img" aria-label="koin"></i>';
 const $ = (id) => document.getElementById(id);
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const kiosks = [
@@ -48,7 +49,7 @@ function calculateBudget(p){
 function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.classList.remove('show'),3100);}
 let sheetCloseTimer;
 function closeFoodInline(){$('foodInline').hidden=true;$('foodInline').innerHTML='';$('foodInline').style.height='';}
-function openSheet(title,html){clearTimeout(sheetCloseTimer);closeFoodInline();$('diaryOverlay').hidden=true;$('searchResults').hidden=true;$('searchInput').blur();const sheet=document.querySelector('#overlay .sheet');sheet.classList.remove('food-sheet','wallet-sheet','drawer-open');sheet.classList.toggle('food-sheet',html.includes('id="payButton"'));$('sheetTitle').textContent=title;$('sheetBody').innerHTML=html;$('overlay').hidden=false;requestAnimationFrame(()=>requestAnimationFrame(()=>sheet.classList.add('drawer-open')));$('closeSheet').focus();}
+function openSheet(title,html){clearTimeout(sheetCloseTimer);closeFoodInline();$('diaryOverlay').hidden=true;$('searchResults').hidden=true;$('searchInput').blur();const sheet=document.querySelector('#overlay .sheet');sheet.classList.remove('food-sheet','wallet-sheet','profile-sheet','drawer-open');sheet.classList.toggle('food-sheet',html.includes('id="payButton"'));$('sheetTitle').textContent=title;$('sheetBody').innerHTML=html;$('overlay').hidden=false;requestAnimationFrame(()=>requestAnimationFrame(()=>sheet.classList.add('drawer-open')));$('closeSheet').focus();}
 function closeSheet(){const overlay=$('overlay'),sheet=overlay.querySelector('.sheet');sheet.classList.remove('drawer-open');clearTimeout(sheetCloseTimer);sheetCloseTimer=setTimeout(()=>{overlay.hidden=true;$('sheetBody').innerHTML='';},800);}
 function renderWallet(){
   const budget=budgetFor(selectedDate),used=usedFor(selectedDate),remaining=budget-used;
@@ -57,10 +58,10 @@ function renderWallet(){
   $('tableLabel').textContent=selectedDate===today()?'Meja hari ini':'Meja';
   $('tableDate').textContent=$('dateLabel').textContent;
   $('remainingValue').textContent=format(remaining);
-  $('spentLine').textContent=`Terpakai ${format(used)} / ${format(budget)} kkal`;
+  $('spentLine').innerHTML=`Terpakai ${format(used)} / ${format(budget)} ${coinUnit}`;
   $('meterFill').style.width=`${Math.max(0,Math.min(100,used/budget*100))}%`;
   $('overLine').hidden=remaining>=0;
-  $('overLine').textContent=remaining<0?`${fmtDate(selectedDate)}: ${format(-remaining)} kkal di atas anggaran`:'';
+  $('overLine').innerHTML=remaining<0?`${fmtDate(selectedDate)}: ${format(-remaining)} ${coinUnit} di atas anggaran`:'';
 }
 function emojiFor(food){return kiosks.find(k=>k.id===currentKiosk(food?.kiosk))?.emoji || '🍽️';}
 function renderDiary(){
@@ -68,7 +69,7 @@ function renderDiary(){
   const logs=state.logs.filter(l=>l.date===selectedDate).sort((a,b)=>b.time.localeCompare(a.time));
   const list=$('diaryList');
   if(!logs.length){list.innerHTML='<div class="diary-empty">Meja masih kosong. Cari makanan lalu bayar dengan kalori.</div>';return;}
-  list.innerHTML=logs.map(l=>`<div class="diary-item"><span class="food-emoji" aria-hidden="true">${emojiFor(l)}</span><div class="diary-main"><strong>${escapeHtml(l.name)}</strong><small>${escapeHtml(l.time)} · ${escapeHtml(l.mealLabel)} · ${escapeHtml(l.portionLabel)} ${l.qty!==1?`· ${l.qty}×`:''}${l.custom?' · Estimasi pengguna':''}</small></div><div class="diary-kcal">${format(l.kcal)}</div><div class="diary-actions"><button data-edit="${escapeHtml(l.id)}" aria-label="Edit ${escapeHtml(l.name)}">Edit</button><button data-delete="${escapeHtml(l.id)}" aria-label="Hapus ${escapeHtml(l.name)}">×</button></div></div>`).join('')+`<div class="diary-total">Total ${format(usedFor(selectedDate))} kkal</div>`;
+  list.innerHTML=logs.map(l=>`<div class="diary-item"><span class="food-emoji" aria-hidden="true">${emojiFor(l)}</span><div class="diary-main"><strong>${escapeHtml(l.name)}</strong><small>${escapeHtml(l.time)} · ${escapeHtml(l.mealLabel)} · ${escapeHtml(l.portionLabel)} ${l.qty!==1?`· ${l.qty}×`:''}${l.custom?' · Estimasi pengguna':''}</small></div><div class="diary-kcal">${format(l.kcal)} ${coinUnit}</div><div class="diary-actions"><button data-edit="${escapeHtml(l.id)}" aria-label="Edit ${escapeHtml(l.name)}">Edit</button><button data-delete="${escapeHtml(l.id)}" aria-label="Hapus ${escapeHtml(l.name)}">×</button></div></div>`).join('')+`<div class="diary-total">Total ${format(usedFor(selectedDate))} ${coinUnit}</div>`;
   list.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>editLog(b.dataset.edit));
   list.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>deleteLog(b.dataset.delete));
 }
@@ -91,7 +92,7 @@ function renderResults(){
   let items=allFoods().filter(f=>(!selectedKiosk || f.kiosk===selectedKiosk) && (!q || `${f.name} ${f.kiosk} ${f.aliases.join(' ')}`.toLocaleLowerCase('id-ID').includes(q)));
   box.hidden=false;
   if(!items.length){box.innerHTML=`<div class="empty-results">Belum ada yang cocok. Coba kata lain atau <button id="emptyCustom" class="text-button" type="button">buat makanan sendiri</button>.</div>`;$('emptyCustom').onclick=showCustom;return;}
-  box.innerHTML=items.slice(0,30).map(f=>`<button class="result" type="button" data-food="${escapeHtml(f.id)}"><span class="result-icon" aria-hidden="true">${emojiFor(f)}</span><span class="result-info"><strong>${escapeHtml(f.name)}</strong><small>${escapeHtml(f.kiosk)} · sedang ±${f.grams[1]} g</small></span><span class="result-kcal">±${format(calories(f,1,1))} kkal</span></button>`).join('');
+  box.innerHTML=items.slice(0,30).map(f=>`<button class="result" type="button" data-food="${escapeHtml(f.id)}"><span class="result-icon" aria-hidden="true">${emojiFor(f)}</span><span class="result-info"><strong>${escapeHtml(f.name)}</strong><small>${escapeHtml(f.kiosk)} · sedang ±${f.grams[1]} g</small></span><span class="result-kcal">±${format(calories(f,1,1))} ${coinUnit}</span></button>`).join('');
   box.querySelectorAll('[data-food]').forEach(b=>b.onclick=()=>showFood(foodById(b.dataset.food)));
 }
 function render(){renderWallet();renderDiary();renderMap();renderResults();}
@@ -102,7 +103,7 @@ function foodSheetHtml(food){
   <div class="form-group"><label>Porsi</label><div class="segmented" id="sizeButtons"><button type="button" data-size="0">Kecil</button><button type="button" data-size="1">Sedang</button><button type="button" data-size="2">Besar</button></div><p id="portionInfo" class="inline-note"></p></div>
   <div class="form-group"><label>Jumlah</label><div class="segmented" id="qtyButtons"><button type="button" data-qty="0.5">½×</button><button type="button" data-qty="1">1×</button><button type="button" data-qty="2">2×</button></div></div>
   <div class="form-row"><div class="form-group"><label for="mealLabel">Waktu makan</label><select id="mealLabel"><option>Sarapan</option><option selected>Makan siang</option><option>Makan malam</option><option>Camilan</option></select></div><div class="form-group"><label for="mealTime">Jam</label><input id="mealTime" type="time" value="${new Date().toTimeString().slice(0,5)}" /></div></div>
-  <div class="payment-summary"><span>1 koin = 1 kkal</span><strong id="paymentCost"></strong></div>
+  <div class="payment-summary"><span>1 ${coinUnit} = 1 kkal</span><strong id="paymentCost"></strong></div>
   <button id="payButton" class="primary-button" type="button">Bayar dengan kalori</button>
   ${k?`<button id="viewKiosk" class="text-button" type="button">Lihat kios ${escapeHtml(k.label)}</button>`:''}
   <p class="inline-note">Bayar berarti mencatat makanan yang sudah dimakan. Berat porsi kios adalah estimasi awal; koreksi ½× atau 2× gratis.</p>`;
@@ -111,8 +112,8 @@ function updateFoodSheet(food){
   document.querySelectorAll('[data-size]').forEach(b=>b.classList.toggle('active',Number(b.dataset.size)===selectedSize));
   document.querySelectorAll('[data-qty]').forEach(b=>b.classList.toggle('active',Number(b.dataset.qty)===selectedQty));
   $('portionInfo').textContent=`${['Kecil','Sedang','Besar'][selectedSize]} · sekitar ${grams(food,selectedSize)} g. ${food.portionStatus}.`;
-  $('paymentCost').textContent=`${format(calories(food,selectedSize,selectedQty))} koin`;
-  $('payButton').textContent=`Bayar ${format(calories(food,selectedSize,selectedQty))} koin`;
+  $('paymentCost').innerHTML=`${format(calories(food,selectedSize,selectedQty))} ${coinUnit}`;
+  $('payButton').innerHTML=`Bayar ${format(calories(food,selectedSize,selectedQty))} ${coinUnit}`;
 }
 function showFood(food){
   if(!food)return;
@@ -150,12 +151,43 @@ function animatePayment(log){
   deliveryQueue.push(log);
   void deliverNext();
 }
+// One animation clock moves the waiter and camera together, without a jump to the table.
+function deliveryIsActive(log){
+  return log.date===selectedDate&&state.logs.some(item=>item.id===log.id)&&!matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+function deliveryFrame(duration,log,draw){
+  return new Promise(resolve=>{
+    let start,last;
+    function frame(now){
+      if(!deliveryIsActive(log)){resolve(false);return;}
+      start??=now;last??=now;
+      const t=Math.min(1,(now-start)/duration);
+      draw(t,Math.min(50,now-last));last=now;
+      if(t<1)requestAnimationFrame(frame);else resolve(true);
+    }
+    requestAnimationFrame(frame);
+  });
+}
+function faceDeliveryDirection(dx,dy){
+  const courier=$('courier');
+  courier.dataset.view=dy>0?'front':'back';
+  // Keep the previous horizontal facing for a straight vertical segment.
+  if(Math.abs(dx)>.01)courier.style.setProperty('--facing',dx<0?-1:1);
+}
+function followDelivery(x,y,blend){
+  const viewport=$('mapViewport'),canvas=$('mapCanvas');
+  const left=Math.max(0,Math.min(canvas.clientWidth-viewport.clientWidth,canvas.clientWidth*x/100-viewport.clientWidth*.5));
+  const top=Math.max(0,Math.min(canvas.clientHeight-viewport.clientHeight,canvas.clientHeight*y/100-viewport.clientHeight*.48));
+  viewport.scrollTo({left:viewport.scrollLeft+(left-viewport.scrollLeft)*blend,top:viewport.scrollTop+(top-viewport.scrollTop)*blend,behavior:'instant'});
+}
 // Payment and delivery share one queue: the waiter only starts after receipt.
 async function sendMoneyToKiosk(log){
   const kioskId=currentKiosk(log.kiosk);
   const kiosk=kiosks.find(k=>k.id===kioskId)||kiosks.find(k=>k.id==='Warteg');
   const viewport=$('mapViewport'),canvas=$('mapCanvas');
-  viewport.scrollTo({left:canvas.clientWidth*kiosk.x/100-viewport.clientWidth/2,top:canvas.clientHeight*kiosk.y/100-viewport.clientHeight*.38,behavior:'instant'});
+  const from={left:viewport.scrollLeft,top:viewport.scrollTop};
+  const to={left:Math.max(0,Math.min(canvas.clientWidth-viewport.clientWidth,canvas.clientWidth*kiosk.x/100-viewport.clientWidth/2)),top:Math.max(0,Math.min(canvas.clientHeight-viewport.clientHeight,canvas.clientHeight*kiosk.y/100-viewport.clientHeight*.38))};
+  if(!await deliveryFrame(500,log,t=>{const ease=t*t*(3-2*t);viewport.scrollTo({left:from.left+(to.left-from.left)*ease,top:from.top+(to.top-from.top)*ease,behavior:'instant'});}))return false;
   const shell=document.querySelector('.app-shell');
   const origin=$('remainingValue').getBoundingClientRect();
   const start={x:origin.left+origin.width/2,y:origin.top+origin.height/2};
@@ -212,20 +244,32 @@ async function deliverNext(){
         const [startX,startY]=route[0];
         courier.style.left=`${startX}%`;courier.style.top=`${startY}%`;
         if(!await sendMoneyToKiosk(log))continue;
-        const viewport=$('mapViewport'),canvas=$('mapCanvas');
-        viewport.scrollTo({left:canvas.clientWidth*.5-viewport.clientWidth/2,top:canvas.clientHeight*.49-viewport.clientHeight/2,behavior:'smooth'});
+        const kiosk=kiosks.find(k=>k.id===currentKiosk(log.kiosk))||kiosks.find(k=>k.id==='Warteg');
+        const distance=Math.hypot(kiosk.x-startX,kiosk.y-startY)||1;
+        const exit=[startX+(kiosk.x-startX)/distance*4,startY+(kiosk.y-startY)/distance*4];
+        const path=[exit,...route];
+        courier.style.left=`${exit[0]}%`;courier.style.top=`${exit[1]}%`;
+        courier.style.opacity='0';
+        courier.style.clipPath='inset(0 0 100% 0)';
         courier.classList.add('is-delivering','is-walking');
-        for(let i=1;i<route.length;i++){
-          if(log.date!==selectedDate||matchMedia('(prefers-reduced-motion: reduce)').matches)break;
-          const [x,y]=route[i], [px,py]=route[i-1];
-          courier.style.setProperty('--facing',x<px?-1:1);
-          const duration=Math.max(450,Math.hypot(x-px,y-py)*65);
-          const motion=courier.animate([{left:`${px}%`,top:`${py}%`},{left:`${x}%`,top:`${y}%`}],{duration,easing:'linear',fill:'forwards'});
-          await motion.finished;
-          courier.style.left=`${x}%`;courier.style.top=`${y}%`;motion.cancel();
+        let completed=true;
+        for(let i=1;i<path.length;i++){
+          const [x,y]=path[i], [px,py]=path[i-1];
+          faceDeliveryDirection(x-px,y-py);
+          const duration=i===1?700:Math.max(450,Math.hypot(x-px,y-py)*65);
+          completed=await deliveryFrame(duration,log,(t,dt)=>{
+            const cx=px+(x-px)*t,cy=py+(y-py)*t;
+            courier.style.left=`${cx}%`;courier.style.top=`${cy}%`;
+            if(i===1){courier.style.opacity=String(Math.min(1,t*3));courier.style.clipPath=`inset(0 0 ${(1-t)*100}% 0)`;}
+            followDelivery(cx,cy,1-Math.exp(-dt/180));
+          });
+          if(!completed)break;
         }
+        if(!completed)continue;
         courier.classList.remove('is-walking');
         if(log.date===selectedDate){
+          const [arrivalX,arrivalY]=route[route.length-1];
+          faceDeliveryDirection(50-arrivalX,49-arrivalY);
           courier.classList.add('is-serving');
           await pauseDelivery(350);
           pendingDeliveries.delete(log.id);renderMap();
@@ -238,6 +282,7 @@ async function deliverNext(){
         $('walletFlying').classList.remove('paying');
         pendingDeliveries.delete(log.id);
         courier.classList.remove('is-delivering','is-walking','is-serving');
+        courier.style.opacity='';courier.style.clipPath='';
         renderMap();
       }
     }
@@ -252,24 +297,24 @@ function pay(){
   const food=selectedFood,id=crypto.randomUUID();
   const log={id,foodId:food.id,name:food.name,kiosk:food.kiosk,custom:!!food.custom,date:selectedDate,time,mealLabel:label,size:selectedSize,qty:selectedQty,portionLabel:`${['Kecil','Sedang','Besar'][selectedSize]} · ${grams(food,selectedSize)} g`,kcal:calories(food,selectedSize,selectedQty)};
   if(state.logs.some(l=>l.id===id)){busy=false;return;}
-  try{state.logs.push(log);state.budgets[selectedDate]??=state.profile?.budget??1800;save();pendingDeliveries.add(log.id);closeFoodInline();$('searchInput').value='';selectedKiosk=null;render();animatePayment(log);toast(`${food.name} tercatat. ${format(log.kcal)} koin keluar dari dompet.`);}catch(e){state.logs=state.logs.filter(l=>l.id!==id);toast('Gagal menyimpan. Coba lagi.');}finally{busy=false;}
+  try{state.logs.push(log);state.budgets[selectedDate]??=state.profile?.budget??1800;save();pendingDeliveries.add(log.id);closeFoodInline();$('searchInput').value='';selectedKiosk=null;render();animatePayment(log);toast(`${food.name} tercatat. Pembayaran berhasil.`);}catch(e){state.logs=state.logs.filter(l=>l.id!==id);toast('Gagal menyimpan. Coba lagi.');}finally{busy=false;}
 }
 function editLog(id){
   const log=state.logs.find(l=>l.id===id);if(!log)return;
-  openSheet('Edit catatan',`<p class="history-note">${escapeHtml(log.name)} · ${format(log.kcal)} kkal</p><div class="form-row"><div class="form-group"><label for="editQty">Jumlah porsi</label><select id="editQty"><option value="0.5">½×</option><option value="1">1×</option><option value="2">2×</option></select></div><div class="form-group"><label for="editLabel">Waktu makan</label><select id="editLabel"><option>Sarapan</option><option>Makan siang</option><option>Makan malam</option><option>Camilan</option></select></div></div><div class="form-group"><label for="editTime">Jam</label><input id="editTime" type="time" value="${escapeHtml(log.time)}" /></div><button id="saveEdit" class="primary-button" type="button">Simpan perubahan</button>`);
+  openSheet('Edit catatan',`<p class="history-note">${escapeHtml(log.name)} · ${format(log.kcal)} ${coinUnit}</p><div class="form-row"><div class="form-group"><label for="editQty">Jumlah porsi</label><select id="editQty"><option value="0.5">½×</option><option value="1">1×</option><option value="2">2×</option></select></div><div class="form-group"><label for="editLabel">Waktu makan</label><select id="editLabel"><option>Sarapan</option><option>Makan siang</option><option>Makan malam</option><option>Camilan</option></select></div></div><div class="form-group"><label for="editTime">Jam</label><input id="editTime" type="time" value="${escapeHtml(log.time)}" /></div><button id="saveEdit" class="primary-button" type="button">Simpan perubahan</button>`);
   $('editQty').value=String(log.qty);$('editLabel').value=log.mealLabel;
   $('saveEdit').onclick=()=>{const food=foodById(log.foodId);const qty=Number($('editQty').value);log.qty=qty;log.mealLabel=$('editLabel').value;log.time=$('editTime').value||log.time;log.kcal=food?calories(food,log.size,qty):Math.round(log.kcal*qty/(log.qty||1));save();closeSheet();render();toast('Catatan diperbarui.');};
 }
 function deleteLog(id){
   const log=state.logs.find(l=>l.id===id);if(!log)return;
-  openSheet('Hapus catatan?',`<p>${escapeHtml(log.name)} (${format(log.kcal)} kkal) akan dihapus dari meja dan riwayat hari ini.</p><div class="button-row"><button id="cancelDelete" class="secondary-button" type="button">Batal</button><button id="confirmDelete" class="primary-button" type="button">Hapus catatan</button></div>`);
+  openSheet('Hapus catatan?',`<p>${escapeHtml(log.name)} (${format(log.kcal)} ${coinUnit}) akan dihapus dari meja dan riwayat hari ini.</p><div class="button-row"><button id="cancelDelete" class="secondary-button" type="button">Batal</button><button id="confirmDelete" class="primary-button" type="button">Hapus catatan</button></div>`);
   $('cancelDelete').onclick=closeSheet;$('confirmDelete').onclick=()=>{state.logs=state.logs.filter(l=>l.id!==id);save();closeSheet();render();toast('Catatan dihapus.');};
 }
 function showCopy(){
   const yesterday=shiftDate(selectedDate,-1),source=state.logs.filter(l=>l.date===yesterday);
   if(!source.length){toast('Belum ada menu pada hari sebelumnya.');return;}
-  openSheet('Salin menu kemarin',`<p class="history-note">Dari ${fmtDate(yesterday)} ke ${fmtDate(selectedDate)}. Dompet belum berubah sebelum konfirmasi.</p><div class="copy-list">${source.map(l=>`<label class="copy-row"><input type="checkbox" data-copy="${escapeHtml(l.id)}" checked /><span>${escapeHtml(l.name)} · ${format(l.kcal)} kkal</span></label>`).join('')}</div><div class="payment-summary" style="margin-top:13px"><span>Total pilihan</span><strong id="copyTotal"></strong></div><button id="confirmCopy" class="primary-button" type="button">Catat pilihan hari ini</button>`);
-  const update=()=>{const ids=[...document.querySelectorAll('[data-copy]:checked')].map(x=>x.dataset.copy);$('copyTotal').textContent=`${format(source.filter(l=>ids.includes(l.id)).reduce((n,l)=>n+l.kcal,0))} kkal`;};
+  openSheet('Salin menu kemarin',`<p class="history-note">Dari ${fmtDate(yesterday)} ke ${fmtDate(selectedDate)}. Dompet belum berubah sebelum konfirmasi.</p><div class="copy-list">${source.map(l=>`<label class="copy-row"><input type="checkbox" data-copy="${escapeHtml(l.id)}" checked /><span>${escapeHtml(l.name)} · ${format(l.kcal)} ${coinUnit}</span></label>`).join('')}</div><div class="payment-summary" style="margin-top:13px"><span>Total pilihan</span><strong id="copyTotal"></strong></div><button id="confirmCopy" class="primary-button" type="button">Catat pilihan hari ini</button>`);
+  const update=()=>{const ids=[...document.querySelectorAll('[data-copy]:checked')].map(x=>x.dataset.copy);$('copyTotal').innerHTML=`${format(source.filter(l=>ids.includes(l.id)).reduce((n,l)=>n+l.kcal,0))} ${coinUnit}`;};
   document.querySelectorAll('[data-copy]').forEach(c=>c.onchange=update);update();
   $('confirmCopy').onclick=()=>{const ids=[...document.querySelectorAll('[data-copy]:checked')].map(x=>x.dataset.copy);if(!ids.length){toast('Pilih setidaknya satu makanan.');return;}const current=new Date().toTimeString().slice(0,5);for(const l of source.filter(x=>ids.includes(x.id)))state.logs.push({...l,id:crypto.randomUUID(),date:selectedDate,time:current});state.budgets[selectedDate]??=state.profile?.budget??1800;save();closeSheet();render();toast(`${ids.length} makanan disalin ke ${fmtDate(selectedDate)}.`);};
 }
@@ -279,7 +324,8 @@ function showCustom(){
 }
 function showProfile(){
   const p=state.profile||{age:30,sex:'Perempuan',activity:'Rendah',weight:70,height:170,pregnant:'Tidak',breastfeeding:'Tidak',goal:'Jaga berat'};
-  openSheet(state.profile?'Atur profil':'Buat dompet kalori',`<p class="inline-note">Anggaran adalah perkiraan untuk orang dewasa. Tujuan versi pertama: jaga berat atau turun bertahap.</p><div class="form-row"><div class="form-group"><label for="age">Usia</label><input id="age" type="number" min="18" max="79" value="${p.age}" /></div><div class="form-group"><label for="sex">Koefisien rumus</label><select id="sex"><option>Perempuan</option><option>Laki-laki</option><option>Tidak ingin menyebutkan</option></select></div></div><div class="form-row"><div class="form-group"><label for="weight">Berat (kg)</label><input id="weight" type="number" min="20" max="350" value="${p.weight}" /></div><div class="form-group"><label for="height">Tinggi (cm)</label><input id="height" type="number" min="100" max="250" value="${p.height}" /></div></div><div class="form-row"><div class="form-group"><label for="activity">Aktivitas</label><select id="activity"><option>Rendah</option><option>Ringan</option><option>Aktif</option></select></div><div class="form-group"><label for="goal">Tujuan</label><select id="goal"><option>Jaga berat</option><option>Turun bertahap</option></select></div></div><div class="form-row"><div class="form-group"><label for="pregnant">Hamil?</label><select id="pregnant"><option>Tidak</option><option>Ya</option></select></div><div class="form-group"><label for="breastfeeding">Menyusui?</label><select id="breastfeeding"><option>Tidak</option><option>Ya</option></select></div></div><div id="profileResult" class="profile-result"></div><button id="saveProfile" class="primary-button" type="button">Simpan profil dan anggaran</button><p class="inline-note">Rumus Mifflin–St Jeor × faktor aktivitas. Pilihan turun bertahap mengurangi 10%, maksimal 300 kkal/hari. Belum ditinjau ahli gizi untuk rekomendasi publik.</p>`);
+  openSheet(state.profile?'Atur profil':'Buat dompet kalori',`<p class="inline-note">Isi profil untuk memperkirakan anggaran kalori harian.</p><div class="form-row profile-measurements"><div class="form-group"><label for="age">Usia</label><input id="age" type="number" min="18" max="79" value="${p.age}" /></div><div class="form-group"><label for="weight">Berat (kg)</label><input id="weight" type="number" min="20" max="350" value="${p.weight}" /></div><div class="form-group"><label for="height">Tinggi (cm)</label><input id="height" type="number" min="100" max="250" value="${p.height}" /></div></div><div class="form-group"><label for="sex">Koefisien rumus</label><select id="sex"><option>Perempuan</option><option>Laki-laki</option><option>Tidak ingin menyebutkan</option></select></div><div class="form-row"><div class="form-group"><label for="activity">Aktivitas</label><select id="activity"><option>Rendah</option><option>Ringan</option><option>Aktif</option></select></div><div class="form-group"><label for="goal">Tujuan</label><select id="goal"><option>Jaga berat</option><option>Turun bertahap</option></select></div></div><div class="form-row"><div class="form-group"><label for="pregnant">Hamil?</label><select id="pregnant"><option>Tidak</option><option>Ya</option></select></div><div class="form-group"><label for="breastfeeding">Menyusui?</label><select id="breastfeeding"><option>Tidak</option><option>Ya</option></select></div></div><div id="profileResult" class="profile-result"></div><button id="saveProfile" class="primary-button" type="button">Simpan profil dan anggaran</button><p class="inline-note">Rumus Mifflin–St Jeor × faktor aktivitas. Pilihan turun bertahap mengurangi 10%, maksimal 300 kkal/hari. Belum ditinjau ahli gizi untuk rekomendasi publik.</p>`);
+  document.querySelector('#overlay .sheet').classList.add('profile-sheet');
   for(const key of ['sex','activity','goal','pregnant','breastfeeding'])$(key).value=p[key];
   const read=()=>({age:Number($('age').value),sex:$('sex').value,weight:Number($('weight').value),height:Number($('height').value),activity:$('activity').value,goal:$('goal').value,pregnant:$('pregnant').value,breastfeeding:$('breastfeeding').value});
   const update=()=>{const data=read(),result=calculateBudget(data);$('profileResult').textContent=result?`Perkiraan jaga berat ${format(result.maintenance)} kkal/hari. Anggaran ${data.goal.toLowerCase()} ${format(result.budget)} kkal/hari.`:'Profil ini memerlukan anggaran yang ditentukan bersama tenaga kesehatan. Perhitungan otomatis tidak tersedia.';};
@@ -299,7 +345,7 @@ $('nextDay').onclick=()=>{selectedDate=shiftDate(selectedDate,1);render();};
 $('tableHotspot').onclick=()=>{$('searchInput').blur();$('searchResults').hidden=true;renderDiary();$('diaryOverlay').hidden=false;$('closeDiary').focus();};
 $('closeDiary').onclick=()=>{$('diaryOverlay').hidden=true;$('tableHotspot').focus();};
 $('diaryOverlay').onclick=e=>{if(e.target===$('diaryOverlay'))$('diaryOverlay').hidden=true;};
- $('walletDetailsButton').onclick=()=>{const budget=budgetFor(selectedDate),used=usedFor(selectedDate),remaining=budget-used;openSheet('Dompet hari ini',`<div class="wallet-detail-logo"><img src="./assets/dompetkalori-logo-transparent.png" alt="DompetKalori" /></div><div class="wallet-detail-date">${fmtDate(selectedDate)}</div><div class="wallet-detail-rows"><div><span>Anggaran</span><strong>${format(budget)} kkal</strong></div><div><span>Terpakai</span><strong>${format(used)} kkal</strong></div><div><span>Sisa</span><strong class="wallet-detail-remaining">${format(remaining)} kkal</strong></div></div><p class="inline-note">${used>budget?'Di atas anggaran. Kamu tetap bisa mencatat makanan.':'Atur Anggaran di menu Settings'}</p>`);document.querySelector('#overlay .sheet').classList.add('wallet-sheet');};
+ $('walletDetailsButton').onclick=()=>{const budget=budgetFor(selectedDate),used=usedFor(selectedDate),remaining=budget-used;openSheet('Dompet hari ini',`<div class="wallet-detail-logo"><img src="./assets/dompetkalori-logo-transparent.png" alt="DompetKalori" /></div><div class="wallet-detail-date">${fmtDate(selectedDate)}</div><div class="wallet-detail-rows"><div><span>Anggaran</span><strong>${format(budget)} ${coinUnit}</strong></div><div><span>Terpakai</span><strong>${format(used)} ${coinUnit}</strong></div><div><span>Sisa</span><strong class="wallet-detail-remaining">${format(remaining)} ${coinUnit}</strong></div></div><p class="inline-note">${used>budget?'Di atas anggaran. Kamu tetap bisa mencatat makanan.':'Atur Anggaran di menu Settings'}</p>`);document.querySelector('#overlay .sheet').classList.add('wallet-sheet');};
 $('mapPanLeft').onclick=()=>$('mapViewport').scrollBy({left:-Math.max(180,$('mapViewport').clientWidth*.72),behavior:'smooth'});
 $('mapPanRight').onclick=()=>$('mapViewport').scrollBy({left:Math.max(180,$('mapViewport').clientWidth*.72),behavior:'smooth'});
 $('closeSheet').onclick=closeSheet;
