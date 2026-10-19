@@ -324,7 +324,7 @@ function showCustom(){
 }
 function showProfile(){
   const p=state.profile||{age:30,sex:'Perempuan',activity:'Rendah',weight:70,height:170,pregnant:'Tidak',breastfeeding:'Tidak',goal:'Jaga berat'};
-  openSheet(state.profile?'Atur profil':'Buat dompet kalori',`<p class="inline-note">Isi profil untuk memperkirakan anggaran kalori harian.</p><div class="form-row profile-measurements"><div class="form-group"><label for="age">Usia</label><input id="age" type="number" min="18" max="79" value="${p.age}" /></div><div class="form-group"><label for="weight">Berat (kg)</label><input id="weight" type="number" min="20" max="350" value="${p.weight}" /></div><div class="form-group"><label for="height">Tinggi (cm)</label><input id="height" type="number" min="100" max="250" value="${p.height}" /></div></div><div class="form-group"><label for="sex">Koefisien rumus</label><select id="sex"><option>Perempuan</option><option>Laki-laki</option><option>Tidak ingin menyebutkan</option></select></div><div class="form-row"><div class="form-group"><label for="activity">Aktivitas</label><select id="activity"><option>Rendah</option><option>Ringan</option><option>Aktif</option></select></div><div class="form-group"><label for="goal">Tujuan</label><select id="goal"><option>Jaga berat</option><option>Turun bertahap</option></select></div></div><div class="form-row"><div class="form-group"><label for="pregnant">Hamil?</label><select id="pregnant"><option>Tidak</option><option>Ya</option></select></div><div class="form-group"><label for="breastfeeding">Menyusui?</label><select id="breastfeeding"><option>Tidak</option><option>Ya</option></select></div></div><div id="profileResult" class="profile-result"></div><button id="saveProfile" class="primary-button" type="button">Simpan profil dan anggaran</button><p class="inline-note">Rumus Mifflin–St Jeor × faktor aktivitas. Pilihan turun bertahap mengurangi 10%, maksimal 300 kkal/hari. Belum ditinjau ahli gizi untuk rekomendasi publik.</p>`);
+  openSheet(state.profile?'Atur profil':'Buat dompet kalori',`<p class="inline-note">Isi profil untuk memperkirakan anggaran kalori harian.</p><div class="form-row profile-measurements"><div class="form-group"><label for="age">Usia</label><input id="age" type="number" inputmode="numeric" min="18" max="79" value="${p.age}" /></div><div class="form-group"><label for="weight">Berat (kg)</label><input id="weight" type="number" inputmode="numeric" min="20" max="350" value="${p.weight}" /></div><div class="form-group"><label for="height">Tinggi (cm)</label><input id="height" type="number" inputmode="numeric" min="100" max="250" value="${p.height}" /></div></div><div class="form-group"><label for="sex">Koefisien rumus</label><select id="sex"><option>Perempuan</option><option>Laki-laki</option><option>Tidak ingin menyebutkan</option></select></div><div class="form-row"><div class="form-group"><label for="activity">Aktivitas</label><select id="activity"><option>Rendah</option><option>Ringan</option><option>Aktif</option></select></div><div class="form-group"><label for="goal">Tujuan</label><select id="goal"><option>Jaga berat</option><option>Turun bertahap</option></select></div></div><div class="form-row"><div class="form-group"><label for="pregnant">Hamil?</label><select id="pregnant"><option>Tidak</option><option>Ya</option></select></div><div class="form-group"><label for="breastfeeding">Menyusui?</label><select id="breastfeeding"><option>Tidak</option><option>Ya</option></select></div></div><div id="profileResult" class="profile-result"></div><button id="saveProfile" class="primary-button" type="button">Simpan profil dan anggaran</button><p class="inline-note">Rumus Mifflin–St Jeor × faktor aktivitas. Pilihan turun bertahap mengurangi 10%, maksimal 300 kkal/hari. Belum ditinjau ahli gizi untuk rekomendasi publik.</p>`);
   document.querySelector('#overlay .sheet').classList.add('profile-sheet');
   for(const key of ['sex','activity','goal','pregnant','breastfeeding'])$(key).value=p[key];
   const read=()=>({age:Number($('age').value),sex:$('sex').value,weight:Number($('weight').value),height:Number($('height').value),activity:$('activity').value,goal:$('goal').value,pregnant:$('pregnant').value,breastfeeding:$('breastfeeding').value});
@@ -355,6 +355,27 @@ render();
 if(!state.profile)showProfile();
 
 // Follow the visible viewport when mobile browser chrome or keyboard changes height.
-function syncViewport(){const viewport=window.visualViewport;document.documentElement.style.setProperty('--app-height',`${viewport?.height||innerHeight}px`);document.documentElement.style.setProperty('--app-top',`${viewport?.offsetTop||0}px`);}
+let focusedFieldFrame;
+function keepDrawerFieldVisible(){
+  cancelAnimationFrame(focusedFieldFrame);
+  focusedFieldFrame=requestAnimationFrame(()=>{
+    const field=document.activeElement;
+    if(!field?.matches('input,select,textarea'))return;
+    const sheet=field.closest('.sheet'),overlay=field.closest('.overlay');
+    if(!sheet||!overlay||overlay.hidden)return;
+    const viewport=window.visualViewport;
+    const visibleTop=viewport?.offsetTop||0;
+    const visibleBottom=visibleTop+(viewport?.height||innerHeight);
+    const bounds=sheet.getBoundingClientRect(),rect=field.getBoundingClientRect();
+    const top=Math.max(bounds.top,visibleTop)+16;
+    const bottom=Math.min(bounds.bottom,visibleBottom)-16;
+    // Scroll only the drawer, avoiding Safari's page-level focus jumps.
+    if(rect.top<top)sheet.scrollTop+=rect.top-top;
+    else if(rect.bottom>bottom)sheet.scrollTop+=rect.bottom-bottom;
+  });
+}
+function syncViewport(){const viewport=window.visualViewport;document.documentElement.style.setProperty('--app-height',`${viewport?.height||innerHeight}px`);document.documentElement.style.setProperty('--app-top',`${viewport?.offsetTop||0}px`);keepDrawerFieldVisible();}
+document.addEventListener('focusin',keepDrawerFieldVisible);
+$('overlay').addEventListener('transitionend',keepDrawerFieldVisible);
 syncViewport();window.visualViewport?.addEventListener('resize',syncViewport);window.visualViewport?.addEventListener('scroll',syncViewport);window.addEventListener('resize',syncViewport);
 requestAnimationFrame(()=>{const viewport=$('mapViewport');viewport.scrollLeft=(viewport.scrollWidth-viewport.clientWidth)/2;});

@@ -3,7 +3,7 @@
 Tool: built-in imagegen, opaque background.
 Reference: app/assets/foodcourt-clean.png (unchanged).
 Output: app/assets/foodcourt-bottom-extension.png.
-Only the bottom quarter of the generated image is rendered, below the original square map. Kiosk, table and animation coordinates remain relative to the original square.
+The generated extension overlaps the final 8% of the original square with an alpha gradient, then continues below it. This removes the hard cut while preserving the upper 92% exactly. Kiosk, table and animation coordinates remain relative to the original square.
 
 Prompt:
 
